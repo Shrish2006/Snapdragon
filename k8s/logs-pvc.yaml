@@ -9,5 +9,5 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  # k3s: local-path | minikube: standard | cloud: default
+  # Adjust per cluster: k3s -> local-path | minikube -> standard | cloud -> (omit for default)
   storageClassName: local-path

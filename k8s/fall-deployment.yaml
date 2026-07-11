@@ -3,22 +3,32 @@ kind: Deployment
 metadata:
   name: fall-detection
   namespace: safeguard
+  labels:
+    app.kubernetes.io/name: fall-detection
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
-      app: fall-detection
+      app.kubernetes.io/name: fall-detection
   template:
     metadata:
       labels:
-        app: fall-detection
+        app.kubernetes.io/name: fall-detection
     spec:
       containers:
         - name: fall-detection
-          image: safeguard/fall-detection:latest
+          image: ghcr.io/shrish2006/snapdragon/fall-detection:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: safeguard-config
           resources:
             requests:
               memory: "128Mi"
@@ -26,9 +36,7 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "250m"
-          volumeMounts:
-            - name: logs
-              mountPath: /logs
+          # fall_detection currently exposes only /health; use it for both probes.
           readinessProbe:
             httpGet:
               path: /health
@@ -41,7 +49,9 @@ spec:
               port: 8000
             initialDelaySeconds: 15
             periodSeconds: 30
-      volumes:
-        - name: logs
-          persistentVolumeClaim:
-            claimName: safeguard-logs
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

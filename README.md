@@ -67,70 +67,69 @@ The helmet continuously reads environmental and biometric data — gas levels, C
 
 ---
 
-## Setup Instructions
+## Quickstart (Docker Compose)
 
-### 1. Clone the repo
+Requires Docker with Compose v2.
+
 ```bash
-git clone https://github.com/[your-username]/snapdragon-multiverse-safeguard
-cd snapdragon-multiverse-safeguard
+git clone https://github.com/Shrish2006/Snapdragon.git
+cd Snapdragon
+cp .env.example .env          # optional — sensible defaults apply without it
+docker compose up --build
 ```
 
-### 2. Install Python dependencies
-```bash
-pip install -r requirements.txt
-```
+| Service | URL | Endpoints |
+|---------|-----|-----------|
+| app (dashboard) | http://localhost:3000 | Next.js UI, `/api/health` |
+| ppe_detection | http://localhost:8001 | `/health`, `/ready`, `/detect`, `/stream` |
+| fall_detection | http://localhost:8002 | `/health` |
 
-### 3. Flash Arduino firmware
-```
-1. Open helmet/helmet_firmware.ino in Arduino IDE
-2. Select board: Arduino UNO Q
-3. Upload firmware
-```
+`docker compose up` runs the hot-reload dev stack (see `compose.override.yml`). For a
+production-like run without overrides: `docker compose -f docker-compose.yml up --build`.
 
-### 4. Download AI models
-```bash
-bash models/download_models.sh
-```
+The PPE service runs CPU-only by default and downloads its model from HuggingFace on
+first start. GPU + camera are opt-in — see the commented block in `docker-compose.yml`.
 
-### 5. Run the edge AI pipeline
-```bash
-python edge_ai/sensor_fusion.py
-```
+### Hardware / models (optional)
 
-### 6. Launch mobile dashboard
-```bash
-python dashboard/app.py
-```
+- Flash the helmet firmware: open `helmet/helmet_firmware.ino` in the Arduino IDE,
+  select **Arduino UNO Q**, and upload.
+- Model weights are pulled automatically at runtime; `models/download_models.sh` is a
+  placeholder for pre-fetching them.
 
 ---
 
-## Usage
+## Deployment
 
-1. Power on the helmet
-2. Run `sensor_fusion.py` on the Snapdragon AI PC
-3. Open the dashboard on your mobile browser at `[IP]:5000`
-4. System begins monitoring automatically
+Full instructions: [docs/deployment.md](docs/deployment.md). Summary:
+
+- **Images** are published to GHCR by CI:
+  `ghcr.io/shrish2006/snapdragon/{app,ppe-detection,fall-detection}`.
+- **Kubernetes:** `kubectl apply -k k8s/` deploys the whole stack to the `safeguard`
+  namespace behind an Ingress at `snapdragon.upayan.dev` (app),
+  `ppe-snapdragon.upayan.dev`, and `fall-snapdragon.upayan.dev`.
+- **Versioning:** push a `vX.Y.Z` tag to publish `X.Y.Z` / `X.Y` / `X` / `latest` images.
 
 ---
 
 ## Project Structure
 
 ```
-snapdragon-multiverse-safeguard/
-├── helmet/
-│   └── helmet_firmware.ino       # Arduino UNO Q firmware
-├── edge_ai/
-│   ├── ppe_detection.py          # YOLO PPE detection on camera feed
-│   ├── anomaly_movement.py       # IMU-based movement anomaly detection
-│   └── sensor_fusion.py          # Sensor fusion + risk scoring engine
-├── dashboard/
-│   └── app.py                    # Mobile alert dashboard (Flask)
-├── models/
-│   └── download_models.sh        # Model weight download script
-├── tests/
-│   └── test_sensor_fusion.py
-└── docs/
-    └── architecture.png
+Snapdragon/
+├── app/                       # Next.js dashboard (standalone build, Dockerfile)
+│   └── src/app/api/health/    # health endpoint for container probes
+├── ai_ml/
+│   ├── config.py              # shared JSON logging setup
+│   ├── ppe_detection/         # FastAPI + YOLO PPE detection (Dockerfile)
+│   └── fall_detection/        # FastAPI fall detection service (Dockerfile)
+├── k8s/                       # Kubernetes manifests (kustomize)
+├── .github/workflows/         # CI (lint/test/build) + CD (GHCR publish)
+├── helmet/                    # Arduino UNO Q firmware
+├── models/                    # model download helper
+├── tests/                     # test suite (wired into CI)
+├── docs/                      # documentation
+├── docker-compose.yml         # local / single-host stack
+└── compose.override.yml       # dev hot-reload overrides
 ```
 
 ---

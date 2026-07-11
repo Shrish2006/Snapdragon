@@ -1,0 +1,119 @@
+name: safeguard
+
+services:
+  app:
+    image: ${IMAGE_REGISTRY:-ghcr.io/shrish2006/snapdragon}/app:${IMAGE_TAG:-latest}
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: safeguard-app
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_BACKEND_BASE_URL: ${APP_BACKEND_URL:-http://localhost:8080}
+    ports:
+      - "3000:3000"
+    depends_on:
+      gateway:
+        condition: service_started
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - safeguard
+
+  gateway:
+    image: ${IMAGE_REGISTRY:-ghcr.io/shrish2006/snapdragon}/gateway:${IMAGE_TAG:-latest}
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: safeguard-gateway
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FILE_PATH: ""
+      PPE_URL: ${PPE_URL:-http://ppe-detection:8000}
+      FALL_URL: ${FALL_URL:-http://fall-detection:8000}
+      EVENT_BUFFER: ${EVENT_BUFFER:-200}
+    ports:
+      - "8080:8080"
+    depends_on:
+      ppe-detection:
+        condition: service_started
+      fall-detection:
+        condition: service_started
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - safeguard
+
+  ppe-detection:
+    image: ${IMAGE_REGISTRY:-ghcr.io/shrish2006/snapdragon}/ppe-detection:${IMAGE_TAG:-latest}
+    build:
+      context: ./ai_ml
+      dockerfile: ppe_detection/Dockerfile
+    container_name: safeguard-ppe
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FILE_PATH: ""
+      CAMERA_INDEX: ${CAMERA_INDEX:-0}
+      HF_HOME: ${HF_HOME:-/tmp/huggingface}
+      HF_TOKEN: ${HF_TOKEN:-}
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    networks:
+      - safeguard
+
+  fall-detection:
+    image: ${IMAGE_REGISTRY:-ghcr.io/shrish2006/snapdragon}/fall-detection:${IMAGE_TAG:-latest}
+    build:
+      context: ./ai_ml
+      dockerfile: fall_detection/Dockerfile
+    container_name: safeguard-fall
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FILE_PATH: ""
+    ports:
+      - "8002:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - safeguard
+
+networks:
+  safeguard:
+    driver: bridge

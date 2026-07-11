@@ -1,0 +1,39 @@
+services:
+  app:
+    build:
+      target: deps
+    command: ["pnpm", "exec", "next", "dev", "-H", "0.0.0.0", "-p", "3000"]
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      - ./app:/app
+      - /app/node_modules
+      - /app/.next
+    healthcheck:
+      start_period: 120s
+
+  gateway:
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+    environment:
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./gateway:/app
+      - /app/.venv
+
+  ppe-detection:
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    environment:
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./ai_ml/ppe_detection:/app/ppe_detection
+      - /app/ppe_detection/.venv
+      - ./ai_ml/config.py:/app/config.py
+
+  fall-detection:
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    environment:
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./ai_ml/fall_detection:/app/fall_detection
+      - /app/fall_detection/.venv

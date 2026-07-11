@@ -3,26 +3,38 @@ kind: Deployment
 metadata:
   name: ppe-detection
   namespace: safeguard
+  labels:
+    app.kubernetes.io/name: ppe-detection
 spec:
   replicas: 1
+  # A single GPU can't be shared by two pods, so never surge — replace in place.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
-      app: ppe-detection
+      app.kubernetes.io/name: ppe-detection
   template:
     metadata:
       labels:
-        app: ppe-detection
+        app.kubernetes.io/name: ppe-detection
     spec:
       runtimeClassName: nvidia
+      # Makes the emptyDir cache and the logs PVC writable by the image's non-root
+      # user (uid 1000) — the container adds gid 1000 as a supplementary group.
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: ppe-detection
-          image: safeguard/ppe-detection:latest
+          image: ghcr.io/shrish2006/snapdragon/ppe-detection:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
           envFrom:
             - configMapRef:
                 name: safeguard-config
+            - secretRef:
+                name: safeguard-secrets
+                optional: true
           resources:
             requests:
               memory: "2Gi"
@@ -36,7 +48,7 @@ spec:
             - name: logs
               mountPath: /logs
             - name: hf-cache
-              mountPath: /root/.cache/huggingface
+              mountPath: /cache
           readinessProbe:
             httpGet:
               path: /ready
@@ -50,7 +62,7 @@ spec:
               port: 8000
             initialDelaySeconds: 90
             periodSeconds: 30
-          # privileged required for /dev/video* camera device access
+          # privileged is required for /dev/video* camera access used by /stream.
           securityContext:
             privileged: true
       volumes:

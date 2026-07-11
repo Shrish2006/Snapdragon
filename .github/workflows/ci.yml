@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-quality:
+    name: Python lint + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install tooling
+        run: python -m pip install ruff pytest
+      - name: Lint (ruff)
+        run: ruff check ai_ml tests
+      - name: Test (pytest)
+        run: |
+          code=0
+          python -m pytest || code=$?
+          if [ "$code" -eq 5 ]; then
+            echo "::notice::No tests collected yet — test wiring is in place."
+            exit 0
+          fi
+          exit "$code"
+
+  web-quality:
+    name: Web lint + typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Lint (eslint)
+        run: pnpm lint
+      - name: Typecheck (tsc)
+        run: pnpm exec tsc --noEmit
+
+  docker-build:
+    name: Build ${{ matrix.name }} image
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: app, context: ./app, file: ./app/Dockerfile }
+          - { name: gateway, context: ./gateway, file: ./gateway/Dockerfile }
+          - {
+              name: ppe-detection,
+              context: ./ai_ml,
+              file: ./ai_ml/ppe_detection/Dockerfile,
+            }
+          - {
+              name: fall-detection,
+              context: ./ai_ml,
+              file: ./ai_ml/fall_detection/Dockerfile,
+            }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
