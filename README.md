@@ -81,6 +81,7 @@ docker compose up --build
 | Service | URL | Endpoints |
 |---------|-----|-----------|
 | app (dashboard) | http://localhost:3000 | Next.js UI, `/api/health` |
+| gateway | http://localhost:8080 | `/v1/telemetry`, `/v1/helmets`, `/v1/detections/ppe`, `/v1/status`, `/v1/events`, `/v1/ws` (WebSocket), `/health`, `/ready`, `/metrics` |
 | ppe_detection | http://localhost:8001 | `/health`, `/ready`, `/detect`, `/stream` |
 | fall_detection | http://localhost:8002 | `/health` |
 
@@ -104,10 +105,11 @@ first start. GPU + camera are opt-in — see the commented block in `docker-comp
 Full instructions: [docs/deployment.md](docs/deployment.md). Summary:
 
 - **Images** are published to GHCR by CI:
-  `ghcr.io/shrish2006/snapdragon/{app,ppe-detection,fall-detection}`.
+  `ghcr.io/shrish2006/snapdragon/{app,gateway,ppe-detection,fall-detection}`.
 - **Kubernetes:** `kubectl apply -k k8s/` deploys the whole stack to the `safeguard`
   namespace behind an Ingress at `snapdragon.upayan.dev` (app),
-  `ppe-snapdragon.upayan.dev`, and `fall-snapdragon.upayan.dev`.
+  `api-snapdragon.upayan.dev` (gateway), `ppe-snapdragon.upayan.dev`, and
+  `fall-snapdragon.upayan.dev`.
 - **Versioning:** push a `vX.Y.Z` tag to publish `X.Y.Z` / `X.Y` / `X` / `latest` images.
 
 ---
@@ -118,6 +120,8 @@ Full instructions: [docs/deployment.md](docs/deployment.md). Summary:
 Snapdragon/
 ├── app/                       # Next.js dashboard (standalone build, Dockerfile)
 │   └── src/app/api/health/    # health endpoint for container probes
+├── gateway/                   # FastAPI gateway (Dockerfile)
+│   └── src/gateway/           # domain / application / infrastructure / api / workers layers
 ├── ai_ml/
 │   ├── config.py              # shared JSON logging setup
 │   ├── ppe_detection/         # FastAPI + YOLO PPE detection (Dockerfile)

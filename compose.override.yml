@@ -14,9 +14,10 @@ services:
       start_period: 120s
 
   gateway:
-    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+    command: ["uvicorn", "gateway.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
     environment:
       LOG_LEVEL: DEBUG
+      PYTHONPATH: /app/src
     volumes:
       - ./gateway:/app
       - /app/.venv
