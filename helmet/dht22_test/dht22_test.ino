@@ -41,3 +41,12 @@ void loop() {
 
   delay(2000);
 }
+
+/*
+Temperature: 26.10 °C	Humidity: 59.80 %	Heat Index: 27.02 °C
+Temperature: 26.10 °C	Humidity: 58.40 %	Heat Index: 26.97 °C
+Temperature: 26.10 °C	Humidity: 57.30 %	Heat Index: 26.93 °C
+Temperature: 26.10 °C	Humidity: 63.60 %	Heat Index: 27.18 °C
+Temperature: 26.20 °C	Humidity: 63.00 %	Heat Index: 27.27 °C
+Temperature: 26.20 °C	Humidity: 61.20 %	Heat Index: 27.19 °C
+*/
