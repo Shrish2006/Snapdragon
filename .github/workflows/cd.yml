@@ -24,10 +24,33 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: app,            context: ./app,   file: ./app/Dockerfile,                         platforms: linux/amd64,linux/arm64 }
-          - { name: gateway,        context: ./gateway, file: ./gateway/Dockerfile,                platforms: linux/amd64,linux/arm64 }
-          - { name: ppe-detection,  context: ./ai_ml, file: ./ai_ml/ppe_detection/Dockerfile,          platforms: linux/amd64 }
-          - { name: fall-detection, context: ./ai_ml, file: ./ai_ml/fall_detection/Dockerfile,         platforms: linux/amd64,linux/arm64 }
+          - {
+              name: app,
+              context: ./app,
+              file: ./app/Dockerfile,
+              platforms: linux/amd64,
+              linux/arm64,
+            }
+          - {
+              name: gateway,
+              context: ./gateway,
+              file: ./gateway/Dockerfile,
+              platforms: linux/amd64,
+              linux/arm64,
+            }
+          - {
+              name: ppe-detection,
+              context: ./ai_ml,
+              file: ./ai_ml/ppe_detection/Dockerfile,
+              platforms: linux/amd64,
+            }
+          - {
+              name: fall-detection,
+              context: ./ai_ml,
+              file: ./ai_ml/fall_detection/Dockerfile,
+              platforms: linux/amd64,
+              linux/arm64,
+            }
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
