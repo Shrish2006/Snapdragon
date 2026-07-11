@@ -20,6 +20,8 @@ spec:
       labels:
         app.kubernetes.io/name: gateway
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: gateway
           image: ghcr.io/shrish2006/snapdragon/gateway:latest
@@ -54,3 +56,10 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+      volumes:
+        - name: logs
+          persistentVolumeClaim:
+            claimName: safeguard-logs
