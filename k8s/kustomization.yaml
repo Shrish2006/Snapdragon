@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: safeguard
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - logs-pvc.yaml
+  - app-deployment.yaml
+  - app-service.yaml
+  - gateway-deployment.yaml
+  - gateway-service.yaml
+  - ppe-deployment.yaml
+  - ppe-service.yaml
+  - fall-deployment.yaml
+  - fall-service.yaml
+  - ingress.yaml
+
+images:
+  - name: ghcr.io/shrish2006/snapdragon/app
+    newTag: latest
+  - name: ghcr.io/shrish2006/snapdragon/gateway
+    newTag: latest
+  - name: ghcr.io/shrish2006/snapdragon/ppe-detection
+    newTag: latest
+  - name: ghcr.io/shrish2006/snapdragon/fall-detection
+    newTag: latest

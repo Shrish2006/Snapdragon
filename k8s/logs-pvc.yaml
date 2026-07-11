@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: safeguard-logs
+  namespace: safeguard
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  # Adjust per cluster: k3s -> local-path | minikube -> standard | cloud -> (omit for default)
+  storageClassName: local-path
