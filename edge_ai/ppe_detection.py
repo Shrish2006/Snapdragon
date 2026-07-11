@@ -5,6 +5,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import torch
 from huggingface_hub import hf_hub_download
 from ultralytics import YOLO
 
@@ -16,11 +17,12 @@ HF_FILE = "best.pt"
 
 class PPEDetector:
     def __init__(self, repo_id: str = HF_REPO, filename: str = HF_FILE):
-        logger.debug("Downloading model from HF: %s/%s", repo_id, filename)
-        local_path = hf_hub_download(repo_id=repo_id, filename=filename)
-        logger.debug("Model cached at: %s", local_path)
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.debug("Using device: %s", self.device)
+        local_path = hf_hub_download(repo_id=repo_id, filename=filename, local_files_only=False)
         self.model = YOLO(local_path)
-        logger.debug("Model loaded successfully")
+        self.model.to(self.device)
+        logger.debug("Model moved to %s", self.device)
 
     def detect(self, frame: np.ndarray) -> tuple[np.ndarray, list[dict]]:
         results = self.model(frame, verbose=False)[0]
@@ -42,7 +44,8 @@ if __name__ == "__main__":
     setup_logging()
 
     detector = PPEDetector(HF_REPO, HF_FILE)
-    cap = cv2.VideoCapture(0)
+    print(f"Running on: {detector.device}")
+    cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
 
     if not cap.isOpened():
         logger.error("Could not open webcam")
