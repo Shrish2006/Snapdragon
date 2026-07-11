@@ -14,43 +14,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Publish ${{ matrix.name }}
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+      gateway: ${{ steps.filter.outputs.gateway }}
+      ppe: ${{ steps.filter.outputs.ppe }}
+      fall: ${{ steps.filter.outputs.fall }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            app:
+              - 'app/**'
+            gateway:
+              - 'gateway/**'
+            ppe:
+              - 'ai_ml/ppe_detection/**'
+              - 'ai_ml/config.py'
+            fall:
+              - 'ai_ml/fall_detection/**'
+              - 'ai_ml/config.py'
+
+  publish-app:
+    name: Publish app
+    needs: changes
+    if: needs.changes.outputs.app == 'true' || github.ref_type == 'tag'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {
-              name: app,
-              context: ./app,
-              file: ./app/Dockerfile,
-              platforms: linux/amd64,
-              linux/arm64,
-            }
-          - {
-              name: gateway,
-              context: ./gateway,
-              file: ./gateway/Dockerfile,
-              platforms: linux/amd64,
-              linux/arm64,
-            }
-          - {
-              name: ppe-detection,
-              context: ./ai_ml,
-              file: ./ai_ml/ppe_detection/Dockerfile,
-              platforms: linux/amd64,
-            }
-          - {
-              name: fall-detection,
-              context: ./ai_ml,
-              file: ./ai_ml/fall_detection/Dockerfile,
-              platforms: linux/amd64,
-              linux/arm64,
-            }
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
@@ -63,7 +59,7 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/${{ github.repository_owner }}/snapdragon/${{ matrix.name }}
+          images: ghcr.io/${{ github.repository_owner }}/snapdragon/app
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -73,12 +69,132 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
       - uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.file }}
-          platforms: ${{ matrix.platforms }}
+          context: ./app
+          file: ./app/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
-          cache-from: type=gha,scope=${{ matrix.name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,mode=max,scope=app
+
+  publish-gateway:
+    name: Publish gateway
+    needs: changes
+    if: needs.changes.outputs.gateway == 'true' || github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/snapdragon/gateway
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./gateway
+          file: ./gateway/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          cache-from: type=gha,scope=gateway
+          cache-to: type=gha,mode=max,scope=gateway
+
+  publish-ppe:
+    name: Publish ppe-detection
+    needs: changes
+    if: needs.changes.outputs.ppe == 'true' || github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/snapdragon/ppe-detection
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./ai_ml
+          file: ./ai_ml/ppe_detection/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          cache-from: type=gha,scope=ppe-detection
+          cache-to: type=gha,mode=max,scope=ppe-detection
+
+  publish-fall:
+    name: Publish fall-detection
+    needs: changes
+    if: needs.changes.outputs.fall == 'true' || github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/snapdragon/fall-detection
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./ai_ml
+          file: ./ai_ml/fall_detection/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          cache-from: type=gha,scope=fall-detection
+          cache-to: type=gha,mode=max,scope=fall-detection
