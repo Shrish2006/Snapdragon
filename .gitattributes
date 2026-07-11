@@ -1,0 +1,15 @@
+* text=auto eol=lf
+*.sh              text eol=lf
+Dockerfile        text eol=lf
+docker-entrypoint.sh text eol=lf
+*.bat             text eol=crlf
+*.cmd             text eol=crlf
+*.png             binary
+*.jpg             binary
+*.jpeg            binary
+*.ico             binary
+*.pt              binary
+*.onnx            binary
+*.zip             binary
+pnpm-lock.yaml    linguist-generated=true -diff
+uv.lock           linguist-generated=true -diff
