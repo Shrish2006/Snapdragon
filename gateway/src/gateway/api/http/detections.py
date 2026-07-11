@@ -23,6 +23,14 @@ router = APIRouter(prefix="/v1/detections", tags=["detections"])
     "/ppe",
     response_model=PPEDetectionResult,
     summary="Run PPE detection on an uploaded frame.",
+    description=(
+        "Upload an image file (JPEG/PNG) to run YOLO-based PPE detection.\n\n"
+        "Returns detected objects with their class labels, confidence scores, "
+        "bounding boxes (x1, y1, x2, y2), and optional tracker IDs.\n\n"
+        "**Upstream errors**:\n"
+        "- **503** if the PPE detection service is unreachable.\n"
+        "- **502** if the detection service returns an error response."
+    ),
 )
 async def detect_ppe(
     service: PPEDetectionServiceDep, file: UploadFile = File(...)

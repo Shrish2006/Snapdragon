@@ -26,9 +26,13 @@ def _valid_batch(helmet_id: str = "HLM-0007", sequence: int = 1) -> dict:
             {
                 "value": {
                     "kind": "imu",
-                    "accel_x_g": 0.01, "accel_y_g": -0.02, "accel_z_g": 1.0,
+                    "accel_x_g": 0.01,
+                    "accel_y_g": -0.02,
+                    "accel_z_g": 1.0,
                     "accel_magnitude_g": 1.0002,
-                    "gyro_x_dps": 0.5, "gyro_y_dps": -0.5, "gyro_z_dps": 0.0,
+                    "gyro_x_dps": 0.5,
+                    "gyro_y_dps": -0.5,
+                    "gyro_z_dps": 0.0,
                 },
                 "captured_at": now,
             }
@@ -36,7 +40,9 @@ def _valid_batch(helmet_id: str = "HLM-0007", sequence: int = 1) -> dict:
     }
 
 
-def _poll(client: TestClient, path: str, *, params: dict | None = None, attempts: int = 50) -> list:
+def _poll(
+    client: TestClient, path: str, *, params: dict | None = None, attempts: int = 50
+) -> list:
     for _ in range(attempts):
         body = client.get(path, params=params or {}).json()
         if body:
@@ -50,7 +56,9 @@ def test_get_events_returns_a_persisted_event_after_ingestion() -> None:
         response = client.post("/v1/telemetry", json=_valid_batch())
         assert response.status_code == 202
 
-        events = _poll(client, "/v1/events", params={"event_type": "telemetry.received"})
+        events = _poll(
+            client, "/v1/events", params={"event_type": "telemetry.received"}
+        )
         assert len(events) == 1
         assert events[0]["type"] == "telemetry.received"
         assert events[0]["helmet_id"] == "HLM-0007"

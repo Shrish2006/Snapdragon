@@ -57,7 +57,9 @@ async def test_a_message_is_not_redelivered_after_being_acked(redis) -> None:
     assert pending["pending"] == 0
 
 
-async def test_a_new_group_created_after_a_publish_still_sees_that_message(redis) -> None:
+async def test_a_new_group_created_after_a_publish_still_sees_that_message(
+    redis,
+) -> None:
     """`xgroup_create(..., id="0")` backfills history — a subscriber that
     starts after events were already published must not miss them."""
     bus = RedisStreamsEventBus(redis)

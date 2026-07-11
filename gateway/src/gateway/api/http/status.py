@@ -25,6 +25,12 @@ class StatusResponse(BaseModel):
     "/status",
     response_model=StatusResponse,
     summary="Gateway and integrated ML service health.",
+    description=(
+        'Returns `{"gateway": "ok"}` plus the health of every upstream '
+        "ML service (PPE detection, fall detection, etc.).\n\n"
+        "Each service reports one of: `ok`, `degraded`, or `unreachable`. "
+        "This is the endpoint dashboards poll for aggregated ops visibility."
+    ),
 )
 async def get_status(service_health: ServiceHealthDep) -> StatusResponse:
     return StatusResponse(services=await service_health.check_all())

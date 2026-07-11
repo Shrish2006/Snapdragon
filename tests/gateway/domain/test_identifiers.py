@@ -16,7 +16,9 @@ def test_helmet_id_accepts_valid_values(value: str) -> None:
     assert _Holder(helmet_id=value).helmet_id == value
 
 
-@pytest.mark.parametrize("value", ["", "A" * 65, "has space", "bad/slash", "-leading-dash"])
+@pytest.mark.parametrize(
+    "value", ["", "A" * 65, "has space", "bad/slash", "-leading-dash"]
+)
 def test_helmet_id_rejects_invalid_values(value: str) -> None:
     with pytest.raises(ValidationError):
         _Holder(helmet_id=value)

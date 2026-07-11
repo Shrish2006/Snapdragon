@@ -40,8 +40,22 @@ class TelemetryRejectedResponse(BaseModel):
     "",
     status_code=status.HTTP_202_ACCEPTED,
     response_model=TelemetryAcceptedResponse,
-    responses={422: {"model": TelemetryRejectedResponse}},
+    responses={
+        422: {
+            "model": TelemetryRejectedResponse,
+            "description": "Validation failed — the batch was rejected.",
+        }
+    },
     summary="Ingest one telemetry batch from a helmet.",
+    description=(
+        "Accepts one `TelemetryBatch` from a helmet and forwards it to the "
+        "ingestion pipeline.\n\n"
+        "- **202** — batch accepted, state updated, event published.\n"
+        "- **422** — validation failed (e.g. duplicate sequence number, "
+        "out-of-range sensor value). The response body lists each issue.\n\n"
+        "Each batch must contain at least one `SensorReading`. "
+        "Supported sensor kinds: `imu`, `gas`, `environment`, `sound`."
+    ),
 )
 async def ingest_telemetry(
     batch: TelemetryBatch, service: IngestionServiceDep

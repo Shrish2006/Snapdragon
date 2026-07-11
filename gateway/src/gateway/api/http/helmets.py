@@ -15,7 +15,12 @@ from gateway.domain.helmets.models import HelmetState
 router = APIRouter(prefix="/v1/helmets", tags=["helmets"])
 
 
-@router.get("", response_model=list[HelmetState], summary="List all known helmets.")
+@router.get(
+    "",
+    response_model=list[HelmetState],
+    summary="List all known helmets.",
+    description="Returns every helmet the gateway has ever seen (presence is telemetry-derived — no separate registration).",
+)
 async def list_helmets(registry: DeviceRegistryDep) -> list[HelmetState]:
     return await registry.list_all()
 
@@ -24,9 +29,17 @@ async def list_helmets(registry: DeviceRegistryDep) -> list[HelmetState]:
     "/{helmet_id}",
     response_model=HelmetState,
     summary="Get one helmet's current real-time state.",
+    description=(
+        "Returns the latest aggregate state for a single helmet: "
+        "online/offline status, last seen timestamp, and the most recent "
+        "reading per sensor type.\n\n"
+        "Returns **404** if the helmet has never been seen."
+    ),
 )
 async def get_helmet(helmet_id: HelmetId, registry: DeviceRegistryDep) -> HelmetState:
     state = await registry.get(helmet_id)
     if state is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"unknown helmet: {helmet_id}")
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail=f"unknown helmet: {helmet_id}"
+        )
     return state

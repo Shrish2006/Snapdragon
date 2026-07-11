@@ -42,7 +42,9 @@ async def observability_middleware(
     http_requests_total.labels(
         method=method, path=path, status_code=str(response.status_code)
     ).inc()
-    http_request_duration_seconds.labels(method=method, path=path).observe(duration_seconds)
+    http_request_duration_seconds.labels(method=method, path=path).observe(
+        duration_seconds
+    )
 
     logger.info(
         "%s %s -> %d (%.1fms)",

@@ -101,6 +101,8 @@ class SQLiteEventStore:
             rows = await cursor.fetchall()
 
         return [
-            EVENT_TYPE_REGISTRY[EventType(event_type_value)].model_validate_json(payload_json)
+            EVENT_TYPE_REGISTRY[EventType(event_type_value)].model_validate_json(
+                payload_json
+            )
             for event_type_value, payload_json in rows
         ]

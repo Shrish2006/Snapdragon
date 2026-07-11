@@ -32,7 +32,11 @@ class EventProcessor(Protocol):
 
 class ProcessingPipeline:
     def __init__(
-        self, bus: EventBus, processors: list[EventProcessor], *, group: str = "processing"
+        self,
+        bus: EventBus,
+        processors: list[EventProcessor],
+        *,
+        group: str = "processing",
     ) -> None:
         self._bus = bus
         self._processors = processors

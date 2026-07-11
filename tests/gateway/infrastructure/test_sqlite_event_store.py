@@ -10,7 +10,9 @@ from gateway.infrastructure.persistence.sqlite import SQLiteEventStore
 T0 = datetime(2026, 7, 12, tzinfo=timezone.utc)
 
 
-def _event(helmet_id: str = "HLM-0007", occurred_at: datetime = T0) -> TelemetryReceivedEvent:
+def _event(
+    helmet_id: str = "HLM-0007", occurred_at: datetime = T0
+) -> TelemetryReceivedEvent:
     batch = TelemetryBatch(
         helmet_id=helmet_id,
         sequence=1,
@@ -18,8 +20,13 @@ def _event(helmet_id: str = "HLM-0007", occurred_at: datetime = T0) -> Telemetry
         readings=[
             SensorReading(
                 value=ImuReading(
-                    accel_x_g=0.0, accel_y_g=0.0, accel_z_g=1.0,
-                    accel_magnitude_g=1.0, gyro_x_dps=0.0, gyro_y_dps=0.0, gyro_z_dps=0.0,
+                    accel_x_g=0.0,
+                    accel_y_g=0.0,
+                    accel_z_g=1.0,
+                    accel_magnitude_g=1.0,
+                    gyro_x_dps=0.0,
+                    gyro_y_dps=0.0,
+                    gyro_z_dps=0.0,
                 ),
                 captured_at=occurred_at,
             )
@@ -62,7 +69,9 @@ async def test_query_orders_newest_first_and_respects_limit(tmp_path: Path) -> N
     assert results[0].occurred_at > results[1].occurred_at
 
 
-async def test_events_survive_a_fresh_store_instance_against_the_same_file(tmp_path: Path) -> None:
+async def test_events_survive_a_fresh_store_instance_against_the_same_file(
+    tmp_path: Path,
+) -> None:
     """Proves durability across restarts — the actual point of this
     adapter over `InMemoryEventStore`."""
     path = str(tmp_path / "events.db")

@@ -25,7 +25,20 @@ from gateway.domain.events.types import EventType
 router = APIRouter(prefix="/v1", tags=["events"])
 
 
-@router.get("/events", summary="Query recent event history, optionally filtered.")
+@router.get(
+    "/events",
+    summary="Query recent event history, optionally filtered.",
+    description=(
+        "Returns a heterogeneous list of `DomainEvent` subclasses serialised "
+        "as JSON objects. Filter by helmet, event type, or time window.\n\n"
+        "**Event types** (`event_type`):\n"
+        "- `telemetry.received` — a telemetry batch was accepted.\n"
+        "- `telemetry.validation_failed` — a batch was rejected by validation.\n"
+        "- `helmet.online` / `helmet.offline` — presence transitions.\n"
+        "- `ml.ppe_detection` — a PPE detection result.\n"
+        "- `ml.result` — generic ML result (fall detection, etc.)."
+    ),
+)
 async def list_events(
     store: EventStoreDep,
     helmet_id: HelmetId | None = None,
@@ -42,6 +55,10 @@ async def list_events(
 @router.get(
     "/helmets/{helmet_id}/events",
     summary="Query one helmet's recent event history.",
+    description=(
+        "Same as `GET /events` but scoped to a single helmet. "
+        "Accepts the same `event_type`, `since`, and `limit` filters."
+    ),
 )
 async def list_helmet_events(
     helmet_id: HelmetId,

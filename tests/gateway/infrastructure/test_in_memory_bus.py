@@ -67,7 +67,9 @@ async def test_close_unblocks_a_pending_iteration_immediately() -> None:
     assert result == []
 
 
-async def test_events_published_after_close_are_not_delivered_to_that_subscriber() -> None:
+async def test_events_published_after_close_are_not_delivered_to_that_subscriber() -> (
+    None
+):
     bus = InMemoryEventBus()
     subscription = bus.subscribe("processing")
     await subscription.close()

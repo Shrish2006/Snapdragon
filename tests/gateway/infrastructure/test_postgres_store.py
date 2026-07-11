@@ -19,7 +19,9 @@ PG_DSN = "postgresql://safeguard:safeguard@127.0.0.1:5433/safeguard"
 T0 = datetime(2026, 7, 12, tzinfo=timezone.utc)
 
 
-def _event(helmet_id: str = "HLM-0007", occurred_at: datetime = T0) -> TelemetryReceivedEvent:
+def _event(
+    helmet_id: str = "HLM-0007", occurred_at: datetime = T0
+) -> TelemetryReceivedEvent:
     batch = TelemetryBatch(
         helmet_id=helmet_id,
         sequence=1,
@@ -27,8 +29,13 @@ def _event(helmet_id: str = "HLM-0007", occurred_at: datetime = T0) -> Telemetry
         readings=[
             SensorReading(
                 value=ImuReading(
-                    accel_x_g=0.0, accel_y_g=0.0, accel_z_g=1.0,
-                    accel_magnitude_g=1.0, gyro_x_dps=0.0, gyro_y_dps=0.0, gyro_z_dps=0.0,
+                    accel_x_g=0.0,
+                    accel_y_g=0.0,
+                    accel_z_g=1.0,
+                    accel_magnitude_g=1.0,
+                    gyro_x_dps=0.0,
+                    gyro_y_dps=0.0,
+                    gyro_z_dps=0.0,
                 ),
                 captured_at=occurred_at,
             )
@@ -64,7 +71,9 @@ def _pg_reachable() -> bool:
         return False
 
 
-pytestmark = pytest.mark.skipif(not _pg_reachable(), reason="Postgres not reachable at PG_DSN")
+pytestmark = pytest.mark.skipif(
+    not _pg_reachable(), reason="Postgres not reachable at PG_DSN"
+)
 
 
 @pytest.fixture

@@ -19,8 +19,13 @@ def _telemetry_event(helmet_id: str, occurred_at: datetime) -> TelemetryReceived
         readings=[
             SensorReading(
                 value=ImuReading(
-                    accel_x_g=0.0, accel_y_g=0.0, accel_z_g=1.0,
-                    accel_magnitude_g=1.0, gyro_x_dps=0.0, gyro_y_dps=0.0, gyro_z_dps=0.0,
+                    accel_x_g=0.0,
+                    accel_y_g=0.0,
+                    accel_z_g=1.0,
+                    accel_magnitude_g=1.0,
+                    gyro_x_dps=0.0,
+                    gyro_y_dps=0.0,
+                    gyro_z_dps=0.0,
                 ),
                 captured_at=occurred_at,
             )
@@ -52,7 +57,9 @@ async def test_query_filters_by_helmet_id() -> None:
 async def test_query_filters_by_event_type() -> None:
     store = InMemoryEventStore(max_size=200)
     await store.append(_telemetry_event("HLM-0007", T0))
-    await store.append(PPEDetectionEvent(source="test", payload=PPEDetectionResult(detections=[])))
+    await store.append(
+        PPEDetectionEvent(source="test", payload=PPEDetectionResult(detections=[]))
+    )
 
     results = await store.query(event_type=EventType.PPE_DETECTION, limit=10)
     assert len(results) == 1
@@ -89,5 +96,7 @@ async def test_store_is_bounded_by_max_size() -> None:
     assert len(results) == 3
     # the three most recently appended survive
     assert {e.occurred_at for e in results} == {
-        T0 + timedelta(minutes=2), T0 + timedelta(minutes=3), T0 + timedelta(minutes=4),
+        T0 + timedelta(minutes=2),
+        T0 + timedelta(minutes=3),
+        T0 + timedelta(minutes=4),
     }

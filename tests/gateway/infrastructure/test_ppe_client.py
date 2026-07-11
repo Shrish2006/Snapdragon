@@ -15,14 +15,21 @@ from gateway.infrastructure.ml_clients.ppe_client import PPEDetectionHttpClient
 
 REAL_DETECTION_BODY = {
     "detections": [
-        {"class_name": "helmet", "confidence": 0.9, "bbox": [1.0, 2.0, 3.0, 4.0], "tracker_id": 1},
+        {
+            "class_name": "helmet",
+            "confidence": 0.9,
+            "bbox": [1.0, 2.0, 3.0, 4.0],
+            "tracker_id": 1,
+        },
     ]
 }
 
 
 def _client(handler) -> PPEDetectionHttpClient:
     http_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    return PPEDetectionHttpClient(base_url="http://ppe-detection:8000", http_client=http_client)
+    return PPEDetectionHttpClient(
+        base_url="http://ppe-detection:8000", http_client=http_client
+    )
 
 
 async def test_detect_parses_a_successful_response_matching_the_real_service() -> None:

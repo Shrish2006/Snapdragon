@@ -2,7 +2,11 @@
 
 import asyncio
 
-from gateway.application.subscription_service import DEFAULT_QUEUE_SIZE, EventFilter, SubscriptionManager
+from gateway.application.subscription_service import (
+    DEFAULT_QUEUE_SIZE,
+    EventFilter,
+    SubscriptionManager,
+)
 from gateway.domain.detection.models import PPEDetectionResult
 from gateway.domain.events.models import PPEDetectionEvent
 from gateway.domain.events.types import EventType, Severity
@@ -28,7 +32,9 @@ def _event(
 
 def test_empty_filter_matches_everything() -> None:
     assert EventFilter().matches(_event())
-    assert EventFilter().matches(_event(helmet_id="HLM-0007", severity=Severity.CRITICAL))
+    assert EventFilter().matches(
+        _event(helmet_id="HLM-0007", severity=Severity.CRITICAL)
+    )
 
 
 def test_filter_by_helmet_id() -> None:

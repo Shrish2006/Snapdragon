@@ -29,5 +29,7 @@ def get_device_registry(
     return container.device_registry
 
 
-SubscriptionManagerDep = Annotated[SubscriptionManager, Depends(get_subscription_manager)]
+SubscriptionManagerDep = Annotated[
+    SubscriptionManager, Depends(get_subscription_manager)
+]
 DeviceRegistryWSDep = Annotated[DeviceRegistryService, Depends(get_device_registry)]

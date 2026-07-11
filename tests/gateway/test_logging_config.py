@@ -55,7 +55,9 @@ def test_json_formatter_includes_exc_field_for_exception_records() -> None:
     try:
         raise ValueError("boom")
     except ValueError:
-        record = _make_record(level=logging.ERROR, msg="failed", exc_info=sys.exc_info())
+        record = _make_record(
+            level=logging.ERROR, msg="failed", exc_info=sys.exc_info()
+        )
 
     line = json.loads(_JSONFormatter().format(record))
     assert "ValueError: boom" in line["exc"]
@@ -86,10 +88,16 @@ def reset_logging_state():
 
 
 def _json_handlers() -> list[logging.Handler]:
-    return [h for h in logging.getLogger().handlers if isinstance(h.formatter, _JSONFormatter)]
+    return [
+        h
+        for h in logging.getLogger().handlers
+        if isinstance(h.formatter, _JSONFormatter)
+    ]
 
 
-def test_setup_logging_attaches_a_json_formatted_stream_handler(reset_logging_state) -> None:
+def test_setup_logging_attaches_a_json_formatted_stream_handler(
+    reset_logging_state,
+) -> None:
     before = len(_json_handlers())
 
     setup_logging(level="INFO", file_path="")
@@ -110,7 +118,9 @@ def test_setup_logging_is_idempotent(reset_logging_state) -> None:
     assert logging.getLogger().level == logging.INFO  # unchanged by the second call
 
 
-def test_setup_logging_writes_json_to_a_file_when_given_a_path(reset_logging_state, tmp_path) -> None:
+def test_setup_logging_writes_json_to_a_file_when_given_a_path(
+    reset_logging_state, tmp_path
+) -> None:
     log_file = tmp_path / "gateway.log"
     setup_logging(level="INFO", file_path=str(log_file))
     logging.getLogger("test.logger").info("to file")

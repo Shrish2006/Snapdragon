@@ -63,7 +63,9 @@ class _RedisStreamSubscription:
             # id="0": deliver every message not yet seen by this group,
             # including ones added before the group existed — a
             # newly-created group should never silently skip history.
-            await self._redis.xgroup_create(_STREAM_KEY, self._group, id="0", mkstream=True)
+            await self._redis.xgroup_create(
+                _STREAM_KEY, self._group, id="0", mkstream=True
+            )
         except ResponseError as exc:
             if "BUSYGROUP" not in str(exc):
                 raise  # group already exists — fine, resume from its offset
@@ -72,7 +74,11 @@ class _RedisStreamSubscription:
         await self._ensure_group()
         while not self._closed:
             response = await self._redis.xreadgroup(
-                self._group, self._consumer, {_STREAM_KEY: ">"}, count=10, block=_BLOCK_MS
+                self._group,
+                self._consumer,
+                {_STREAM_KEY: ">"},
+                count=10,
+                block=_BLOCK_MS,
             )
             if not response:
                 continue
