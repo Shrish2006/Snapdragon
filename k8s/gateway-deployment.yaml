@@ -31,6 +31,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: safeguard-config
+            - secretRef:
+                name: safeguard-secrets
+                optional: true
           resources:
             requests:
               memory: "128Mi"
@@ -40,7 +43,7 @@ spec:
               cpu: "500m"
           readinessProbe:
             httpGet:
-              path: /health
+              path: /ready
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10

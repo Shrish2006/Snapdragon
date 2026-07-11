@@ -19,6 +19,7 @@ Covers local development, image publishing to GHCR, and Kubernetes deployment.
 | Service | Image | Container port | Local host port |
 |---------|-------|----------------|-----------------|
 | `app` | `ghcr.io/shrish2006/snapdragon/app` | 3000 | 3000 |
+| `gateway` | `ghcr.io/shrish2006/snapdragon/gateway` | 8080 | 8080 |
 | `ppe-detection` | `ghcr.io/shrish2006/snapdragon/ppe-detection` | 8000 | 8001 |
 | `fall-detection` | `ghcr.io/shrish2006/snapdragon/fall-detection` | 8000 | 8002 |
 
@@ -74,6 +75,8 @@ All variables the code reads are documented in `.env.example`. Highlights:
 | `HF_HOME` | ppe-detection | Model cache dir (writable by the non-root user) |
 | `HF_TOKEN` | ppe-detection | Only needed if the model repo goes private |
 | `NEXT_PUBLIC_BACKEND_BASE_URL` | app | Browser-facing backend URL; swapped in at boot |
+| `PPE_URL` / `FALL_URL` | gateway | Upstream ML service base URLs |
+| `EVENT_BUS_BACKEND` | gateway | `memory` (default) or `redis` — see `gateway/example.env` for the full set of gateway-specific variables (event store backend, Redis/SQLite paths, telemetry validation) |
 
 > **Next.js note:** `NEXT_PUBLIC_*` values are inlined at build time. The app image's
 > `docker-entrypoint.sh` rewrites the baked default at container start, so the same
@@ -87,6 +90,7 @@ Images are published to the GitHub Container Registry under the repo owner:
 
 ```
 ghcr.io/shrish2006/snapdragon/app
+ghcr.io/shrish2006/snapdragon/gateway
 ghcr.io/shrish2006/snapdragon/ppe-detection
 ghcr.io/shrish2006/snapdragon/fall-detection
 ```
@@ -107,6 +111,7 @@ CI does this automatically, but to publish by hand:
 
 ```bash
 docker build -t ghcr.io/shrish2006/snapdragon/app:dev ./app
+docker build -t ghcr.io/shrish2006/snapdragon/gateway:dev ./gateway
 docker build -f ai_ml/ppe_detection/Dockerfile -t ghcr.io/shrish2006/snapdragon/ppe-detection:dev ./ai_ml
 docker build -f ai_ml/fall_detection/Dockerfile -t ghcr.io/shrish2006/snapdragon/fall-detection:dev ./ai_ml
 docker push ghcr.io/shrish2006/snapdragon/app:dev
@@ -124,9 +129,9 @@ Two GitHub Actions workflows:
 - **`.github/workflows/ci.yml`** — on every PR and branch push:
   - `ruff` lint + `pytest` (Python)
   - `eslint` + `tsc --noEmit` (web)
-  - `docker build` verification for all three images (no push), with GHA layer cache.
+  - `docker build` verification for all four images (no push), with GHA layer cache.
 - **`.github/workflows/cd.yml`** — on branch pushes and `v*.*.*` tags:
-  - builds all three images with buildx, multi-arch where practical
+  - builds all four images with buildx, multi-arch where practical
     (`app` + `fall-detection` build `amd64`+`arm64`; `ppe-detection` is `amd64`-only
     because torch cu124 has no arm64 wheels),
   - pushes to GHCR with tags derived by `docker/metadata-action`.
@@ -167,6 +172,7 @@ Manifests live in `k8s/` and are wired with a single `kustomization.yaml`.
 - (PPE GPU) an NVIDIA device plugin + `nvidia` RuntimeClass on a GPU node.
 - DNS records for the ingress hosts pointing at the ingress load balancer:
   - `snapdragon.upayan.dev` → app
+  - `api-snapdragon.upayan.dev` → gateway
   - `ppe-snapdragon.upayan.dev` → ppe-detection
   - `fall-snapdragon.upayan.dev` → fall-detection
 
@@ -201,6 +207,7 @@ kustomization, so `kubectl apply -k k8s/` never clobbers a real secret.
 cd k8s
 kustomize edit set image \
   ghcr.io/shrish2006/snapdragon/app=ghcr.io/shrish2006/snapdragon/app:v1.0.0 \
+  ghcr.io/shrish2006/snapdragon/gateway=ghcr.io/shrish2006/snapdragon/gateway:v1.0.0 \
   ghcr.io/shrish2006/snapdragon/ppe-detection=ghcr.io/shrish2006/snapdragon/ppe-detection:v1.0.0 \
   ghcr.io/shrish2006/snapdragon/fall-detection=ghcr.io/shrish2006/snapdragon/fall-detection:v1.0.0
 kubectl apply -k .
@@ -226,11 +233,17 @@ kubectl -n safeguard rollout undo deploy/app
 | Service | Liveness | Readiness |
 |---------|----------|-----------|
 | app | `GET /api/health` | `GET /api/health` |
+| gateway | `GET /health` | `GET /ready` (background tasks started; event bus reachable) |
 | ppe-detection | `GET /health` | `GET /ready` (model loaded) |
 | fall-detection | `GET /health` | `GET /health` |
 
 All return `{"status":"ok"}` with HTTP 200. `ppe /ready` returns 503 until the model is
-loaded, which gates traffic during the (slow) first startup.
+loaded, which gates traffic during the (slow) first startup. `gateway /ready` returns 503
+until its background event-processing/subscription tasks are running, and again if the
+event bus backend is Redis and Redis becomes unreachable.
+
+Gateway also exposes `GET /metrics` (Prometheus text format: HTTP request counts/latency
+by route, current WebSocket connection count).
 
 ---
 
