@@ -61,7 +61,9 @@ class Subscriber:
 
     id: str
     filter: EventFilter
-    queue: asyncio.Queue[DomainEvent[Any]] = field(default_factory=lambda: asyncio.Queue(maxsize=DEFAULT_QUEUE_SIZE))
+    queue: asyncio.Queue[DomainEvent[Any]] = field(
+        default_factory=lambda: asyncio.Queue(maxsize=DEFAULT_QUEUE_SIZE)
+    )
 
 
 class SubscriptionManager:
@@ -97,7 +99,9 @@ class SubscriptionManager:
             self._subscribers[subscriber.id] = subscriber
         return subscriber
 
-    async def update_filter(self, subscriber_id: str, event_filter: EventFilter) -> None:
+    async def update_filter(
+        self, subscriber_id: str, event_filter: EventFilter
+    ) -> None:
         async with self._lock:
             subscriber = self._subscribers.get(subscriber_id)
             if subscriber is not None:

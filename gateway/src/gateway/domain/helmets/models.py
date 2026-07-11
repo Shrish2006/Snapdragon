@@ -66,8 +66,7 @@ class HelmetState(BaseModel):
         is, by definition, current contact)."""
         if batch.helmet_id != self.helmet_id:
             raise ValueError(
-                f"batch for {batch.helmet_id!r} applied to state for "
-                f"{self.helmet_id!r}"
+                f"batch for {batch.helmet_id!r} applied to state for {self.helmet_id!r}"
             )
         merged = dict(self.latest_readings)
         merged.update(_merge(batch.readings))

@@ -20,6 +20,7 @@ The helmet continuously reads environmental and biometric data — gas levels, C
 | 2 | Ankit Agrawal | Ankit.agrawal2024@vitstudent.ac.in |
 | 3 | Naman Chauhan | Naman.chauhan2024@vitstudent.ac.in |
 | 4 | Upayan Mazumder | upayan.mazumder2024@vitstudent.ac.in |
+| 5 | Chitrita Gahlot | chitrita.gahlot2024@vitstudent.ac.in |
 
 ---
 

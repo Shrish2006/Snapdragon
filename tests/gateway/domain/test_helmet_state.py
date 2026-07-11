@@ -20,8 +20,13 @@ T1 = T0 + timedelta(seconds=1)
 def _imu_reading(captured_at: datetime = T0) -> SensorReading:
     return SensorReading(
         value=ImuReading(
-            accel_x_g=0.0, accel_y_g=0.0, accel_z_g=1.0,
-            accel_magnitude_g=1.0, gyro_x_dps=0.0, gyro_y_dps=0.0, gyro_z_dps=0.0,
+            accel_x_g=0.0,
+            accel_y_g=0.0,
+            accel_z_g=1.0,
+            accel_magnitude_g=1.0,
+            gyro_x_dps=0.0,
+            gyro_y_dps=0.0,
+            gyro_z_dps=0.0,
         ),
         captured_at=captured_at,
     )
@@ -29,7 +34,8 @@ def _imu_reading(captured_at: datetime = T0) -> SensorReading:
 
 def _gas_reading(captured_at: datetime = T0) -> SensorReading:
     return SensorReading(
-        value=AnalogGasReading(kind=SensorType.GAS_LPG, adc_raw=66), captured_at=captured_at
+        value=AnalogGasReading(kind=SensorType.GAS_LPG, adc_raw=66),
+        captured_at=captured_at,
     )
 
 
@@ -48,10 +54,14 @@ def test_first_contact_builds_initial_state_from_first_batch() -> None:
 
 def test_apply_batch_merges_new_sensor_readings_without_dropping_old_ones() -> None:
     first = HelmetState.first_contact(
-        TelemetryBatch(helmet_id="HLM-0007", sequence=1, sent_at=T0, readings=[_imu_reading()])
+        TelemetryBatch(
+            helmet_id="HLM-0007", sequence=1, sent_at=T0, readings=[_imu_reading()]
+        )
     )
     second = first.apply_batch(
-        TelemetryBatch(helmet_id="HLM-0007", sequence=2, sent_at=T1, readings=[_gas_reading(T1)])
+        TelemetryBatch(
+            helmet_id="HLM-0007", sequence=2, sent_at=T1, readings=[_gas_reading(T1)]
+        )
     )
     assert set(second.latest_readings) == {SensorType.IMU, SensorType.GAS_LPG}
     assert second.last_sequence == 2
@@ -61,10 +71,14 @@ def test_apply_batch_merges_new_sensor_readings_without_dropping_old_ones() -> N
 
 def test_apply_batch_overwrites_same_sensor_type_with_latest_reading() -> None:
     first = HelmetState.first_contact(
-        TelemetryBatch(helmet_id="HLM-0007", sequence=1, sent_at=T0, readings=[_gas_reading(T0)])
+        TelemetryBatch(
+            helmet_id="HLM-0007", sequence=1, sent_at=T0, readings=[_gas_reading(T0)]
+        )
     )
     second = first.apply_batch(
-        TelemetryBatch(helmet_id="HLM-0007", sequence=2, sent_at=T1, readings=[_gas_reading(T1)])
+        TelemetryBatch(
+            helmet_id="HLM-0007", sequence=2, sent_at=T1, readings=[_gas_reading(T1)]
+        )
     )
     assert len(second.latest_readings) == 1
     assert second.latest_readings[SensorType.GAS_LPG].captured_at == T1
@@ -72,7 +86,9 @@ def test_apply_batch_overwrites_same_sensor_type_with_latest_reading() -> None:
 
 def test_apply_batch_rejects_mismatched_helmet_id() -> None:
     state = HelmetState.first_contact(
-        TelemetryBatch(helmet_id="HLM-0007", sequence=1, sent_at=T0, readings=[_imu_reading()])
+        TelemetryBatch(
+            helmet_id="HLM-0007", sequence=1, sent_at=T0, readings=[_imu_reading()]
+        )
     )
     other_batch = TelemetryBatch(
         helmet_id="HLM-9999", sequence=2, sent_at=T1, readings=[_imu_reading(T1)]
@@ -83,7 +99,9 @@ def test_apply_batch_rejects_mismatched_helmet_id() -> None:
 
 def test_mark_offline_flips_status_without_touching_timestamps_or_readings() -> None:
     state = HelmetState.first_contact(
-        TelemetryBatch(helmet_id="HLM-0007", sequence=1, sent_at=T0, readings=[_imu_reading()])
+        TelemetryBatch(
+            helmet_id="HLM-0007", sequence=1, sent_at=T0, readings=[_imu_reading()]
+        )
     )
     offline = state.mark_offline()
     assert offline.status is HelmetStatus.OFFLINE
@@ -93,15 +111,23 @@ def test_mark_offline_flips_status_without_touching_timestamps_or_readings() -> 
 
 def test_is_stale_compares_against_threshold() -> None:
     state = HelmetState.first_contact(
-        TelemetryBatch(helmet_id="HLM-0007", sequence=1, sent_at=T0, readings=[_imu_reading()])
+        TelemetryBatch(
+            helmet_id="HLM-0007", sequence=1, sent_at=T0, readings=[_imu_reading()]
+        )
     )
-    assert not state.is_stale(now=T0 + timedelta(seconds=5), threshold=timedelta(seconds=60))
-    assert state.is_stale(now=T0 + timedelta(seconds=120), threshold=timedelta(seconds=60))
+    assert not state.is_stale(
+        now=T0 + timedelta(seconds=5), threshold=timedelta(seconds=60)
+    )
+    assert state.is_stale(
+        now=T0 + timedelta(seconds=120), threshold=timedelta(seconds=60)
+    )
 
 
 def test_state_is_immutable() -> None:
     state = HelmetState.first_contact(
-        TelemetryBatch(helmet_id="HLM-0007", sequence=1, sent_at=T0, readings=[_imu_reading()])
+        TelemetryBatch(
+            helmet_id="HLM-0007", sequence=1, sent_at=T0, readings=[_imu_reading()]
+        )
     )
     with pytest.raises(Exception):
         state.status = HelmetStatus.OFFLINE  # type: ignore[misc]

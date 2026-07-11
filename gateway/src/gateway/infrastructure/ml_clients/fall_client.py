@@ -20,4 +20,6 @@ class FallDetectionHttpClient(BaseHttpMLServiceClient):
     """Implements `application.ports.MLServiceClient` structurally."""
 
     def __init__(self, *, base_url: str, http_client: httpx.AsyncClient) -> None:
-        super().__init__(service_name="fall-detection", base_url=base_url, http_client=http_client)
+        super().__init__(
+            service_name="fall-detection", base_url=base_url, http_client=http_client
+        )

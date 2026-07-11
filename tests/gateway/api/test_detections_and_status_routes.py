@@ -46,10 +46,17 @@ def _client_with_overrides(
 def test_post_detect_ppe_returns_typed_detections() -> None:
     result = PPEDetectionResult(
         detections=[
-            PPEDetectionItem(class_name="vest", confidence=0.8, bbox=(0.0, 0.0, 1.0, 1.0), tracker_id=None)
+            PPEDetectionItem(
+                class_name="vest",
+                confidence=0.8,
+                bbox=(0.0, 0.0, 1.0, 1.0),
+                tracker_id=None,
+            )
         ]
     )
-    client = _client_with_overrides(_FakePPEDetectionService(result), _FakeServiceHealth({}))
+    client = _client_with_overrides(
+        _FakePPEDetectionService(result), _FakeServiceHealth({})
+    )
 
     response = client.post(
         "/v1/detections/ppe", files={"file": ("frame.jpg", b"fake-bytes", "image/jpeg")}
@@ -60,24 +67,36 @@ def test_post_detect_ppe_returns_typed_detections() -> None:
 
 def test_post_detect_ppe_maps_unavailable_error_to_503() -> None:
     error = MLServiceUnavailableError("ppe-detection", ConnectionError("refused"))
-    client = _client_with_overrides(_FakePPEDetectionService(error), _FakeServiceHealth({}))
+    client = _client_with_overrides(
+        _FakePPEDetectionService(error), _FakeServiceHealth({})
+    )
 
-    response = client.post("/v1/detections/ppe", files={"file": ("frame.jpg", b"x", "image/jpeg")})
+    response = client.post(
+        "/v1/detections/ppe", files={"file": ("frame.jpg", b"x", "image/jpeg")}
+    )
     assert response.status_code == 503
 
 
 def test_post_detect_ppe_maps_response_error_to_502() -> None:
     error = MLServiceResponseError("ppe-detection", 500, "model not loaded")
-    client = _client_with_overrides(_FakePPEDetectionService(error), _FakeServiceHealth({}))
+    client = _client_with_overrides(
+        _FakePPEDetectionService(error), _FakeServiceHealth({})
+    )
 
-    response = client.post("/v1/detections/ppe", files={"file": ("frame.jpg", b"x", "image/jpeg")})
+    response = client.post(
+        "/v1/detections/ppe", files={"file": ("frame.jpg", b"x", "image/jpeg")}
+    )
     assert response.status_code == 502
 
 
 def test_get_status_reports_gateway_and_service_health() -> None:
-    health = {"ppe-detection": ServiceHealth.OK, "fall-detection": ServiceHealth.UNREACHABLE}
+    health = {
+        "ppe-detection": ServiceHealth.OK,
+        "fall-detection": ServiceHealth.UNREACHABLE,
+    }
     client = _client_with_overrides(
-        _FakePPEDetectionService(PPEDetectionResult(detections=[])), _FakeServiceHealth(health)
+        _FakePPEDetectionService(PPEDetectionResult(detections=[])),
+        _FakeServiceHealth(health),
     )
 
     response = client.get("/v1/status")

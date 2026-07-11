@@ -28,8 +28,13 @@ def _batch() -> TelemetryBatch:
         readings=[
             SensorReading(
                 value=ImuReading(
-                    accel_x_g=0.0, accel_y_g=0.0, accel_z_g=1.0,
-                    accel_magnitude_g=1.0, gyro_x_dps=0.0, gyro_y_dps=0.0, gyro_z_dps=0.0,
+                    accel_x_g=0.0,
+                    accel_y_g=0.0,
+                    accel_z_g=1.0,
+                    accel_magnitude_g=1.0,
+                    gyro_x_dps=0.0,
+                    gyro_y_dps=0.0,
+                    gyro_z_dps=0.0,
                 ),
                 captured_at=NOW,
             )
@@ -50,7 +55,9 @@ def test_telemetry_received_event_defaults_its_type_and_severity() -> None:
 def test_ppe_detection_event_requires_a_ppe_detection_result_payload() -> None:
     with pytest.raises(ValidationError):
         PPEDetectionEvent(
-            helmet_id=None, source="ppe-detection", payload=_batch()  # wrong payload type
+            helmet_id=None,
+            source="ppe-detection",
+            payload=_batch(),  # wrong payload type
         )
 
     event = PPEDetectionEvent(
@@ -63,7 +70,9 @@ def test_ppe_detection_event_requires_a_ppe_detection_result_payload() -> None:
 def test_ml_result_event_carries_the_generic_envelope() -> None:
     event = MLResultEvent(
         source="fall-detection",
-        payload=MLServiceResult(service="fall-detection", payload={"status": "unimplemented"}),
+        payload=MLServiceResult(
+            service="fall-detection", payload={"status": "unimplemented"}
+        ),
     )
     assert event.type is EventType.ML_RESULT
     assert event.payload.service == "fall-detection"
@@ -99,7 +108,9 @@ def test_validation_failed_event_defaults_to_warning_severity() -> None:
         EventType.ML_RESULT,
     ],
 )
-def test_every_registered_event_type_round_trips_through_json(event_type: EventType) -> None:
+def test_every_registered_event_type_round_trips_through_json(
+    event_type: EventType,
+) -> None:
     """The registry is what `SQLiteEventStore`/`RedisStreamsEventBus` rely
     on to reconstruct a typed event from a stored/wire JSON blob — prove
     every registered type actually survives that round trip."""

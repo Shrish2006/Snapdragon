@@ -33,7 +33,9 @@ class DetectPPERequest:
 
 
 class PPEDetectionService:
-    def __init__(self, client: PPEDetectionClient, event_publisher: EventPublisher) -> None:
+    def __init__(
+        self, client: PPEDetectionClient, event_publisher: EventPublisher
+    ) -> None:
         self._client = client
         self._event_publisher = event_publisher
 

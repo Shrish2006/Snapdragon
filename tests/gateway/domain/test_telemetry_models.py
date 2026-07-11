@@ -66,7 +66,10 @@ def test_environment_reading_matches_dht22_test_ino_fields() -> None:
 
 def test_sound_level_reading_matches_sound_sensor_test_ino() -> None:
     reading = SensorReading.model_validate(
-        {"value": {"kind": "sound_level", "adc_raw": 1031}, "captured_at": NOW.isoformat()}
+        {
+            "value": {"kind": "sound_level", "adc_raw": 1031},
+            "captured_at": NOW.isoformat(),
+        }
     )
     assert isinstance(reading.value, SoundLevelReading)
     assert reading.sensor_type is SensorType.SOUND_LEVEL
@@ -109,11 +112,22 @@ def test_telemetry_batch_accepts_a_mixed_multi_sensor_payload() -> None:
         sequence=42,
         sent_at=NOW,
         readings=[
-            SensorReading(value=ImuReading(
-                accel_x_g=0.0, accel_y_g=0.0, accel_z_g=1.0,
-                accel_magnitude_g=1.0, gyro_x_dps=0.0, gyro_y_dps=0.0, gyro_z_dps=0.0,
-            ), captured_at=NOW),
-            SensorReading(value=AnalogGasReading(kind=SensorType.GAS_LPG, adc_raw=66), captured_at=NOW),
+            SensorReading(
+                value=ImuReading(
+                    accel_x_g=0.0,
+                    accel_y_g=0.0,
+                    accel_z_g=1.0,
+                    accel_magnitude_g=1.0,
+                    gyro_x_dps=0.0,
+                    gyro_y_dps=0.0,
+                    gyro_z_dps=0.0,
+                ),
+                captured_at=NOW,
+            ),
+            SensorReading(
+                value=AnalogGasReading(kind=SensorType.GAS_LPG, adc_raw=66),
+                captured_at=NOW,
+            ),
             SensorReading(value=SoundLevelReading(adc_raw=67), captured_at=NOW),
         ],
     )

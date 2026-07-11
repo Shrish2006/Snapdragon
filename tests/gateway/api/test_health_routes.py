@@ -40,7 +40,9 @@ def test_ready_is_503_when_the_redis_backend_is_unreachable() -> None:
     app.state.container = dataclasses.replace(
         app.state.container,
         event_bus=RedisStreamsEventBus(
-            redis=Redis(host="127.0.0.1", port=1, socket_connect_timeout=0.2, socket_timeout=0.2)
+            redis=Redis(
+                host="127.0.0.1", port=1, socket_connect_timeout=0.2, socket_timeout=0.2
+            )
         ),
     )
     with TestClient(app) as client:

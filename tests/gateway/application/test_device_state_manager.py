@@ -18,8 +18,13 @@ def _batch(sequence: int) -> TelemetryBatch:
         readings=[
             SensorReading(
                 value=ImuReading(
-                    accel_x_g=0.0, accel_y_g=0.0, accel_z_g=1.0,
-                    accel_magnitude_g=1.0, gyro_x_dps=0.0, gyro_y_dps=0.0, gyro_z_dps=0.0,
+                    accel_x_g=0.0,
+                    accel_y_g=0.0,
+                    accel_z_g=1.0,
+                    accel_magnitude_g=1.0,
+                    gyro_x_dps=0.0,
+                    gyro_y_dps=0.0,
+                    gyro_z_dps=0.0,
                 ),
                 captured_at=T0,
             )

@@ -32,9 +32,13 @@ def _valid_batch(sequence: int = 1) -> dict:
             {
                 "value": {
                     "kind": "imu",
-                    "accel_x_g": 0.01, "accel_y_g": -0.02, "accel_z_g": 1.0,
+                    "accel_x_g": 0.01,
+                    "accel_y_g": -0.02,
+                    "accel_z_g": 1.0,
                     "accel_magnitude_g": 1.0002,
-                    "gyro_x_dps": 0.5, "gyro_y_dps": -0.5, "gyro_z_dps": 0.0,
+                    "gyro_x_dps": 0.5,
+                    "gyro_y_dps": -0.5,
+                    "gyro_z_dps": 0.0,
                 },
                 "captured_at": now,
             }
@@ -51,11 +55,15 @@ async def _poll(coro_factory, predicate, *, attempts: int = 50, delay: float = 0
     return None
 
 
-async def test_accepted_telemetry_is_persisted_via_the_real_background_pipeline() -> None:
+async def test_accepted_telemetry_is_persisted_via_the_real_background_pipeline() -> (
+    None
+):
     app = create_app(settings_for_tests())
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as client:
             response = await client.post("/v1/telemetry", json=_valid_batch(sequence=1))
             assert response.status_code == 202
 
@@ -74,10 +82,14 @@ async def test_rejected_telemetry_persists_a_validation_failed_event() -> None:
     app = create_app(settings_for_tests())
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as client:
             batch = _valid_batch(sequence=1)
             await client.post("/v1/telemetry", json=batch)
-            rejected = await client.post("/v1/telemetry", json=batch)  # duplicate sequence
+            rejected = await client.post(
+                "/v1/telemetry", json=batch
+            )  # duplicate sequence
             assert rejected.status_code == 422
 
             store = app.state.container.event_store

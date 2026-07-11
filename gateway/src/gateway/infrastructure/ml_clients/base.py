@@ -22,7 +22,9 @@ class BaseHttpMLServiceClient:
     """Implements `application.ports.MLServiceClient` structurally (no
     explicit inheritance — `Protocol` conformance is duck-typed)."""
 
-    def __init__(self, *, service_name: str, base_url: str, http_client: httpx.AsyncClient) -> None:
+    def __init__(
+        self, *, service_name: str, base_url: str, http_client: httpx.AsyncClient
+    ) -> None:
         self._service_name = service_name
         self._base_url = base_url.rstrip("/")
         self._http = http_client

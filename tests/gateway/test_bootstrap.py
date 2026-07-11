@@ -24,7 +24,11 @@ def test_redis_backend_selection_wires_redis_streams_event_bus() -> None:
     # `Redis.from_url(...)` is lazy — redis-py opens no connection until
     # the first command, so this is safe to construct without a server.
     container = build_container(
-        Settings(_env_file=None, event_bus_backend="redis", redis_url="redis://localhost:6379/0")
+        Settings(
+            _env_file=None,
+            event_bus_backend="redis",
+            redis_url="redis://localhost:6379/0",
+        )
     )
     assert isinstance(container.event_bus, RedisStreamsEventBus)
 
@@ -47,7 +51,6 @@ async def test_container_pipeline_persists_a_published_event_end_to_end() -> Non
     container's real event store."""
     container = build_container(settings_for_tests())
     event = PPEDetectionEvent(source="test", payload=PPEDetectionResult(detections=[]))
-
 
     task = asyncio.create_task(container.processing_pipeline.run())
     await asyncio.sleep(0)  # let the pipeline subscribe before publishing
