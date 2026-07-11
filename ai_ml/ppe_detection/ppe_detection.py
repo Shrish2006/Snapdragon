@@ -1,6 +1,7 @@
 import logging
 import sys
 import time
+from collections import defaultdict
 from pathlib import Path
 
 import cv2
@@ -14,6 +15,8 @@ logger = logging.getLogger(__name__)
 HF_REPO = "gauravp22/vyra-yolo-ppe-detection"
 HF_FILE = "best.pt"
 
+SUSTAIN_FRAMES = 10
+
 
 class PPEDetector:
     def __init__(self, repo_id: str = HF_REPO, filename: str = HF_FILE):
@@ -22,19 +25,40 @@ class PPEDetector:
         local_path = hf_hub_download(repo_id=repo_id, filename=filename, local_files_only=False)
         self.model = YOLO(local_path)
         self.model.to(self.device)
+        self._streak: dict[tuple, int] = defaultdict(int)
+        self._logged: set[tuple] = set()
         logger.debug("Model moved to %s", self.device)
 
     def detect(self, frame: np.ndarray) -> tuple[np.ndarray, list[dict]]:
-        results = self.model(frame, verbose=False)[0]
-        detections = [
-            {
-                "class_name": results.names[int(box.cls[0])],
+        results = self.model.track(frame, persist=True, tracker="botsort.yaml", verbose=False)[0]
+
+        detections: list[dict] = []
+        active: set[tuple] = set()
+
+        for box in results.boxes:
+            class_name = results.names[int(box.cls[0])]
+            tracker_id = int(box.id[0]) if box.id is not None else None
+            detections.append({
+                "class_name": class_name,
                 "confidence": float(box.conf[0]),
                 "bbox": box.xyxy[0].tolist(),
-            }
-            for box in results.boxes
-        ]
-        logger.debug("Detected %d objects", len(detections))
+                "tracker_id": tracker_id,
+            })
+
+            if tracker_id is not None:
+                active.add((tracker_id, class_name))
+
+        for key in active:
+            self._streak[key] += 1
+            if self._streak[key] >= SUSTAIN_FRAMES and key not in self._logged:
+                logger.warning("stable detection: tracker_id=%d class=%s", key[0], key[1])
+                self._logged.add(key)
+
+        for key in set(self._streak) - active:
+            del self._streak[key]
+            self._logged.discard(key)
+
+        logger.debug("detected %d objects", len(detections))
         return results.plot(), detections
 
 
