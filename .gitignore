@@ -8,3 +8,25 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Dataset
+archive*/
+*.zip
+logs/
+
+# Node (root-level safety; app/ has its own ignore too)
+node_modules/
+
+.env
+.env.*
+!**/example.env
+
+# Kubernetes: local filled-in secret copies
+k8s/*.local.yaml
+
+# Tooling caches
+.ruff_cache/
+.pytest_cache/
+
+# OS / editor noise
+.DS_Store
