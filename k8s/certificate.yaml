@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: safeguard-tls
+  namespace: safeguard
+spec:
+  secretName: safeguard-tls
+  dnsNames:
+    - snapdragon.upayan.dev
+    - api-snapdragon.upayan.dev
+    - ppe-snapdragon.upayan.dev
+    - fall-snapdragon.upayan.dev
+  issuerRef:
+    name: letsencrypt-cloudflare
+    kind: ClusterIssuer
