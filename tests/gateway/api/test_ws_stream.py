@@ -23,9 +23,13 @@ def _valid_batch(helmet_id: str = "HLM-0007", sequence: int = 1) -> dict:
             {
                 "value": {
                     "kind": "imu",
-                    "accel_x_g": 0.01, "accel_y_g": -0.02, "accel_z_g": 1.0,
+                    "accel_x_g": 0.01,
+                    "accel_y_g": -0.02,
+                    "accel_z_g": 1.0,
                     "accel_magnitude_g": 1.0002,
-                    "gyro_x_dps": 0.5, "gyro_y_dps": -0.5, "gyro_z_dps": 0.0,
+                    "gyro_x_dps": 0.5,
+                    "gyro_y_dps": -0.5,
+                    "gyro_z_dps": 0.0,
                 },
                 "captured_at": now,
             }
@@ -69,15 +73,21 @@ def test_subscribe_message_narrows_the_filter_to_one_helmet() -> None:
             ws.receive_json()  # snapshot
             ws.send_json({"action": "subscribe", "filter": {"helmet_id": "HLM-ONLY"}})
 
-            client.post("/v1/telemetry", json=_valid_batch(helmet_id="HLM-OTHER", sequence=1))
-            client.post("/v1/telemetry", json=_valid_batch(helmet_id="HLM-ONLY", sequence=1))
+            client.post(
+                "/v1/telemetry", json=_valid_batch(helmet_id="HLM-OTHER", sequence=1)
+            )
+            client.post(
+                "/v1/telemetry", json=_valid_batch(helmet_id="HLM-ONLY", sequence=1)
+            )
 
             message = ws.receive_json()
             assert message["type"] == "event"
             assert message["event"]["helmet_id"] == "HLM-ONLY"
 
 
-def test_malformed_subscribe_message_gets_an_error_reply_not_a_dropped_connection() -> None:
+def test_malformed_subscribe_message_gets_an_error_reply_not_a_dropped_connection() -> (
+    None
+):
     with TestClient(create_app(settings_for_tests())) as client:
         with client.websocket_connect("/v1/ws") as ws:
             ws.receive_json()  # snapshot

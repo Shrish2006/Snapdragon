@@ -21,7 +21,9 @@ from gateway.main import create_app
 
 
 def _counter_value(path: str, status_code: str, method: str = "GET") -> float:
-    return http_requests_total.labels(method=method, path=path, status_code=status_code)._value.get()
+    return http_requests_total.labels(
+        method=method, path=path, status_code=status_code
+    )._value.get()
 
 
 def _histogram_count(path: str, method: str = "GET") -> float:

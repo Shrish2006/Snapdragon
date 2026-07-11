@@ -44,12 +44,16 @@ def get_service_health(
     return container.service_health
 
 
-def get_event_store(container: Annotated[Container, Depends(get_container)]) -> EventStore:
+def get_event_store(
+    container: Annotated[Container, Depends(get_container)],
+) -> EventStore:
     return container.event_store
 
 
 IngestionServiceDep = Annotated[IngestionService, Depends(get_ingestion_service)]
 DeviceRegistryDep = Annotated[DeviceRegistryService, Depends(get_device_registry)]
-PPEDetectionServiceDep = Annotated[PPEDetectionService, Depends(get_ppe_detection_service)]
+PPEDetectionServiceDep = Annotated[
+    PPEDetectionService, Depends(get_ppe_detection_service)
+]
 ServiceHealthDep = Annotated[ServiceHealthService, Depends(get_service_health)]
 EventStoreDep = Annotated[EventStore, Depends(get_event_store)]

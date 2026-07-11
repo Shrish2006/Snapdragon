@@ -17,8 +17,13 @@ NOW = datetime(2026, 7, 12, tzinfo=timezone.utc)
 def _imu_reading(accel_x_g: float = 0.0) -> SensorReading:
     return SensorReading(
         value=ImuReading(
-            accel_x_g=accel_x_g, accel_y_g=0.0, accel_z_g=1.0,
-            accel_magnitude_g=1.0, gyro_x_dps=0.0, gyro_y_dps=0.0, gyro_z_dps=0.0,
+            accel_x_g=accel_x_g,
+            accel_y_g=0.0,
+            accel_z_g=1.0,
+            accel_magnitude_g=1.0,
+            gyro_x_dps=0.0,
+            gyro_y_dps=0.0,
+            gyro_z_dps=0.0,
         ),
         captured_at=NOW,
     )
@@ -69,7 +74,10 @@ def test_batch_with_non_monotonic_sequence_is_flagged() -> None:
 def test_batch_with_excessive_clock_skew_is_flagged() -> None:
     stale = NOW - timedelta(minutes=5)
     result = validate_batch(
-        _batch(1, stale), previous_sequence=None, now=NOW, max_clock_skew=timedelta(seconds=30)
+        _batch(1, stale),
+        previous_sequence=None,
+        now=NOW,
+        max_clock_skew=timedelta(seconds=30),
     )
     assert not result.is_valid
     assert any(issue.field == "sent_at" for issue in result.issues)

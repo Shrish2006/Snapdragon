@@ -8,7 +8,9 @@ from gateway.infrastructure.ml_clients.fall_client import FallDetectionHttpClien
 
 def _client(handler) -> FallDetectionHttpClient:
     http_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    return FallDetectionHttpClient(base_url="http://fall-detection:8000", http_client=http_client)
+    return FallDetectionHttpClient(
+        base_url="http://fall-detection:8000", http_client=http_client
+    )
 
 
 async def test_health_reflects_the_real_fall_detection_health_endpoint() -> None:

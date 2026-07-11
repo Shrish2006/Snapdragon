@@ -33,6 +33,8 @@ spec:
                   optional: false
             - name: POSTGRES_DB
               value: safeguard
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
           resources:
             requests:
               memory: "128Mi"

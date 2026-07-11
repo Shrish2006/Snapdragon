@@ -32,8 +32,13 @@ def _batch(sequence: int, sent_at: datetime = T0) -> TelemetryBatch:
         readings=[
             SensorReading(
                 value=ImuReading(
-                    accel_x_g=0.0, accel_y_g=0.0, accel_z_g=1.0,
-                    accel_magnitude_g=1.0, gyro_x_dps=0.0, gyro_y_dps=0.0, gyro_z_dps=0.0,
+                    accel_x_g=0.0,
+                    accel_y_g=0.0,
+                    accel_z_g=1.0,
+                    accel_magnitude_g=1.0,
+                    gyro_x_dps=0.0,
+                    gyro_y_dps=0.0,
+                    gyro_z_dps=0.0,
                 ),
                 captured_at=sent_at,
             )
@@ -41,7 +46,9 @@ def _batch(sequence: int, sent_at: datetime = T0) -> TelemetryBatch:
     )
 
 
-def _service() -> tuple[IngestionService, _RecordingPublisher, InMemoryHelmetRepository]:
+def _service() -> tuple[
+    IngestionService, _RecordingPublisher, InMemoryHelmetRepository
+]:
     repo = InMemoryHelmetRepository()
     publisher = _RecordingPublisher()
     # `clock=lambda: T0` pins "now" so clock-skew assertions are

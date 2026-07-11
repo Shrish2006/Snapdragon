@@ -24,7 +24,9 @@ class PPEDetectionHttpClient(BaseHttpMLServiceClient):
     """Implements `application.ports.PPEDetectionClient` structurally."""
 
     def __init__(self, *, base_url: str, http_client: httpx.AsyncClient) -> None:
-        super().__init__(service_name="ppe-detection", base_url=base_url, http_client=http_client)
+        super().__init__(
+            service_name="ppe-detection", base_url=base_url, http_client=http_client
+        )
 
     async def detect(
         self, image: bytes, *, filename: str, content_type: str
@@ -38,7 +40,9 @@ class PPEDetectionHttpClient(BaseHttpMLServiceClient):
             raise MLServiceUnavailableError(self._service_name, exc) from exc
 
         if response.is_error:
-            raise MLServiceResponseError(self._service_name, response.status_code, response.text)
+            raise MLServiceResponseError(
+                self._service_name, response.status_code, response.text
+            )
 
         try:
             return PPEDetectionResult.model_validate(response.json())

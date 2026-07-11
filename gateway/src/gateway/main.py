@@ -43,7 +43,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from gateway.api.http import detections, events, health, helmets, metrics, status, telemetry
+from gateway.api.http import (
+    detections,
+    events,
+    health,
+    helmets,
+    metrics,
+    status,
+    telemetry,
+)
 from gateway.api.http.middleware import observability_middleware
 from gateway.api.ws import stream as ws_stream
 from gateway.bootstrap import Container, build_container
@@ -60,7 +68,9 @@ logger = logging.getLogger("gateway.lifespan")
 
 
 @asynccontextmanager
-async def _run_background_tasks(*coroutines: Callable[[], Awaitable[None]]) -> AsyncIterator[None]:
+async def _run_background_tasks(
+    *coroutines: Callable[[], Awaitable[None]],
+) -> AsyncIterator[None]:
     """Start each `coroutines[i]()` as a task for the duration of the
     `async with` block; cancel all of them (in reverse start order) and
     wait for the cancellation to land on shutdown."""
@@ -106,7 +116,56 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     setup_logging(level=settings.log_level, file_path=settings.log_file_path)
 
-    app = FastAPI(title="SafeGuard Gateway", lifespan=_lifespan)
+    tags_metadata = [
+        {
+            "name": "telemetry",
+            "description": "Ingest sensor readings from helmets.",
+        },
+        {
+            "name": "helmets",
+            "description": "Read-only real-time helmet state (online/offline, latest readings per sensor).",
+        },
+        {
+            "name": "detections",
+            "description": "On-demand ML detection (PPE). Upload a frame and get detection results.",
+        },
+        {
+            "name": "status",
+            "description": "Aggregate health of the gateway and its upstream ML services.",
+        },
+        {
+            "name": "events",
+            "description": "Historical event log — telemetry accepted, detections run, state transitions.",
+        },
+    ]
+    app = FastAPI(
+        title="SafeGuard Gateway",
+        description=(
+            "Real-time safety helmet telemetry ingestion, ML detection (PPE), "
+            "and event streaming backend.\n\n"
+            "Helmets report sensor readings (IMU, gas, environment, sound) via HTTP. "
+            "The gateway validates, persists, and streams them to connected dashboards "
+            "over WebSocket. On-demand PPE detection runs uploaded frames against a "
+            "YOLO model.\n\n"
+            "---\n"
+            "**Liveness** `GET /health` — always 200 if the process is alive.\n"
+            "**Readiness** `GET /ready` — 503 until background tasks finish starting "
+            "and the event bus (Redis, if configured) responds.\n"
+            "**Metrics** `GET /metrics` — Prometheus text format.\n"
+            "**WebSocket** `GET /v1/ws` — real-time event stream (see the WebSocket tab below)."
+        ),
+        version="1.0.0",
+        contact={
+            "name": "SafeGuard Team",
+            "url": "https://github.com/Shrish2006/Snapdragon",
+        },
+        license_info={
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT",
+        },
+        openapi_tags=tags_metadata,
+        lifespan=_lifespan,
+    )
     app.state.settings = settings
     app.state.container = build_container(settings)
     app.state.ready = False
@@ -123,11 +182,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(metrics.router)
 
     @app.exception_handler(MLServiceUnavailableError)
-    async def _handle_unavailable(_: Request, exc: MLServiceUnavailableError) -> JSONResponse:
+    async def _handle_unavailable(
+        _: Request, exc: MLServiceUnavailableError
+    ) -> JSONResponse:
         return JSONResponse(status_code=503, content={"detail": str(exc)})
 
     @app.exception_handler(MLServiceResponseError)
-    async def _handle_response_error(_: Request, exc: MLServiceResponseError) -> JSONResponse:
+    async def _handle_response_error(
+        _: Request, exc: MLServiceResponseError
+    ) -> JSONResponse:
         return JSONResponse(status_code=502, content={"detail": str(exc)})
 
     return app

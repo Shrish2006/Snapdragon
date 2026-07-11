@@ -51,11 +51,17 @@ async def stream(
     logger.info("ws connect subscriber_id=%s", subscriber.id)
     try:
         helmets = await registry.list_all()
-        await websocket.send_json(SnapshotMessage.from_helmets(helmets).model_dump(mode="json"))
+        await websocket.send_json(
+            SnapshotMessage.from_helmets(helmets).model_dump(mode="json")
+        )
 
-        reader = asyncio.create_task(_read_client_messages(websocket, manager, subscriber.id))
+        reader = asyncio.create_task(
+            _read_client_messages(websocket, manager, subscriber.id)
+        )
         writer = asyncio.create_task(_write_events(websocket, subscriber))
-        _done, pending = await asyncio.wait({reader, writer}, return_when=asyncio.FIRST_COMPLETED)
+        _done, pending = await asyncio.wait(
+            {reader, writer}, return_when=asyncio.FIRST_COMPLETED
+        )
         for task in pending:
             task.cancel()
     finally:
@@ -73,7 +79,9 @@ async def _read_client_messages(
             try:
                 message = SubscribeMessage.model_validate_json(raw)
             except ValueError as exc:
-                await websocket.send_json(ErrorMessage(detail=str(exc)).model_dump(mode="json"))
+                await websocket.send_json(
+                    ErrorMessage(detail=str(exc)).model_dump(mode="json")
+                )
                 continue
             await manager.update_filter(subscriber_id, message.filter)
     except WebSocketDisconnect:
@@ -90,6 +98,8 @@ async def _write_events(websocket: WebSocket, subscriber: Subscriber) -> None:
             except asyncio.TimeoutError:
                 await websocket.send_json(HeartbeatMessage().model_dump(mode="json"))
                 continue
-            await websocket.send_json(EventMessage.from_domain_event(event).model_dump(mode="json"))
+            await websocket.send_json(
+                EventMessage.from_domain_event(event).model_dump(mode="json")
+            )
     except WebSocketDisconnect:
         pass

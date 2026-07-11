@@ -25,10 +25,10 @@ _detector: PPEDetector | None = None
 _ready = False
 
 
-CAMERA_INDEX    = int(os.getenv("CAMERA_INDEX",    "1"))
+CAMERA_INDEX = int(os.getenv("CAMERA_INDEX", "1"))
 PROCESS_EVERY_N = int(os.getenv("PROCESS_EVERY_N", "1"))
-STREAM_QUALITY  = int(os.getenv("STREAM_QUALITY",  "85"))
-_CAM_BACKEND    = cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_V4L2
+STREAM_QUALITY = int(os.getenv("STREAM_QUALITY", "85"))
+_CAM_BACKEND = cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_V4L2
 
 
 def _make_no_signal_jpeg() -> bytes:
@@ -41,12 +41,28 @@ def _make_no_signal_jpeg() -> bytes:
         cv2.line(frame, (0, y), (w, y), (28, 28, 28), 1)
     text = "NO SIGNAL"
     (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_DUPLEX, 1.4, 2)
-    cv2.putText(frame, text, (cx - tw // 2, cy + th // 2),
-                cv2.FONT_HERSHEY_DUPLEX, 1.4, (255, 231, 52), 2, cv2.LINE_AA)
+    cv2.putText(
+        frame,
+        text,
+        (cx - tw // 2, cy + th // 2),
+        cv2.FONT_HERSHEY_DUPLEX,
+        1.4,
+        (255, 231, 52),
+        2,
+        cv2.LINE_AA,
+    )
     sub = "AWAITING VIDEO FEED"
     (sw, _), _ = cv2.getTextSize(sub, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-    cv2.putText(frame, sub, (cx - sw // 2, cy + th // 2 + 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (120, 120, 120), 1, cv2.LINE_AA)
+    cv2.putText(
+        frame,
+        sub,
+        (cx - sw // 2, cy + th // 2 + 30),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.5,
+        (120, 120, 120),
+        1,
+        cv2.LINE_AA,
+    )
     _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
     return buf.tobytes()
 
@@ -92,10 +108,10 @@ async def detect(file: UploadFile = File(...)) -> JSONResponse:
 
 
 def _frame_generator():
-    cache_lock  = threading.Lock()
-    cached_jpeg = [_NO_SIGNAL_BYTES]   # always has something to yield
+    cache_lock = threading.Lock()
+    cached_jpeg = [_NO_SIGNAL_BYTES]  # always has something to yield
 
-    slot_lock  = threading.Lock()
+    slot_lock = threading.Lock()
     slot_frame = [None]
     slot_event = threading.Event()
     stop_event = threading.Event()
@@ -112,7 +128,9 @@ def _frame_generator():
                 continue
             try:
                 annotated, _ = _detector.detect(frame)
-                ok, buf = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, STREAM_QUALITY])
+                ok, buf = cv2.imencode(
+                    ".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, STREAM_QUALITY]
+                )
                 if ok:
                     with cache_lock:
                         cached_jpeg[0] = buf.tobytes()
@@ -131,7 +149,11 @@ def _frame_generator():
             ok, raw = cap.read()
             if not ok:
                 time.sleep(0.1)
-                yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + _NO_SIGNAL_BYTES + b"\r\n"
+                yield (
+                    b"--frame\r\nContent-Type: image/jpeg\r\n\r\n"
+                    + _NO_SIGNAL_BYTES
+                    + b"\r\n"
+                )
                 continue
 
             if frame_count % PROCESS_EVERY_N == 0:
@@ -153,7 +175,7 @@ def _frame_generator():
 
     finally:
         stop_event.set()
-        slot_event.set()   # wake worker so it can observe stop
+        slot_event.set()  # wake worker so it can observe stop
         cap.release()
 
 
@@ -169,4 +191,5 @@ def stream() -> StreamingResponse:
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)

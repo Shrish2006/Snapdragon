@@ -48,7 +48,9 @@ async def test_sweep_offline_transitions_only_stale_online_helmets() -> None:
     await repo.upsert(fresh)
     await repo.upsert(stale)
 
-    changed = await registry.sweep_offline(now=now, staleness_threshold=timedelta(seconds=60))
+    changed = await registry.sweep_offline(
+        now=now, staleness_threshold=timedelta(seconds=60)
+    )
 
     assert [state.helmet_id for state in changed] == ["HLM-STALE"]
     assert (await repo.get("HLM-STALE")).status is HelmetStatus.OFFLINE
@@ -61,8 +63,12 @@ async def test_sweep_offline_is_idempotent() -> None:
     await repo.upsert(_online_state("HLM-STALE", T0))
 
     now = T0 + timedelta(seconds=120)
-    first_pass = await registry.sweep_offline(now=now, staleness_threshold=timedelta(seconds=60))
-    second_pass = await registry.sweep_offline(now=now, staleness_threshold=timedelta(seconds=60))
+    first_pass = await registry.sweep_offline(
+        now=now, staleness_threshold=timedelta(seconds=60)
+    )
+    second_pass = await registry.sweep_offline(
+        now=now, staleness_threshold=timedelta(seconds=60)
+    )
 
     assert len(first_pass) == 1
     assert second_pass == []  # already offline — not re-flagged as "changed"

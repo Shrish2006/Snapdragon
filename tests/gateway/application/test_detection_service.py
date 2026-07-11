@@ -34,7 +34,12 @@ class _RecordingPublisher:
 def _detection_result() -> PPEDetectionResult:
     return PPEDetectionResult(
         detections=[
-            PPEDetectionItem(class_name="helmet", confidence=0.9, bbox=(0.0, 0.0, 1.0, 1.0), tracker_id=1)
+            PPEDetectionItem(
+                class_name="helmet",
+                confidence=0.9,
+                bbox=(0.0, 0.0, 1.0, 1.0),
+                tracker_id=1,
+            )
         ]
     )
 
@@ -58,7 +63,9 @@ async def test_detect_publishes_a_ppe_detection_event_scoped_to_no_helmet() -> N
     publisher = _RecordingPublisher()
     service = PPEDetectionService(client, publisher)
 
-    await service.detect(DetectPPERequest(image=b"x", filename="a.jpg", content_type="image/jpeg"))
+    await service.detect(
+        DetectPPERequest(image=b"x", filename="a.jpg", content_type="image/jpeg")
+    )
 
     assert len(publisher.events) == 1
     event = publisher.events[0]

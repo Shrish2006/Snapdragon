@@ -74,8 +74,12 @@ def build_container(settings: Settings) -> Container:
         max_clock_skew=timedelta(seconds=settings.telemetry_max_clock_skew_seconds),
     )
 
-    ppe_client = PPEDetectionHttpClient(base_url=settings.ppe_url, http_client=http_client)
-    fall_client = FallDetectionHttpClient(base_url=settings.fall_url, http_client=http_client)
+    ppe_client = PPEDetectionHttpClient(
+        base_url=settings.ppe_url, http_client=http_client
+    )
+    fall_client = FallDetectionHttpClient(
+        base_url=settings.fall_url, http_client=http_client
+    )
     ppe_detection_service = PPEDetectionService(ppe_client, event_bus)
     service_health = ServiceHealthService(
         {"ppe-detection": ppe_client, "fall-detection": fall_client}

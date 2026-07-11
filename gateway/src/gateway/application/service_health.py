@@ -23,5 +23,7 @@ class ServiceHealthService:
 
     async def check_all(self) -> dict[str, ServiceHealth]:
         names = list(self._clients)
-        results = await asyncio.gather(*(self._clients[name].health() for name in names))
+        results = await asyncio.gather(
+            *(self._clients[name].health() for name in names)
+        )
         return dict(zip(names, results, strict=True))
