@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: safeguard-config
+  namespace: safeguard
+data:
+  LOG_LEVEL: "INFO"
+  LOG_FILE_PATH: "/logs/project.log"
+  HF_REPO: "gauravp22/vyra-yolo-ppe-detection"
+  HF_FILE: "best.pt"
+  CAMERA_INDEX: "1"

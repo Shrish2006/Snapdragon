@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ppe-detection
+  namespace: safeguard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ppe-detection
+  template:
+    metadata:
+      labels:
+        app: ppe-detection
+    spec:
+      runtimeClassName: nvidia
+      containers:
+        - name: ppe-detection
+          image: safeguard/ppe-detection:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: safeguard-config
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1"
+              nvidia.com/gpu: "1"
+            limits:
+              memory: "6Gi"
+              cpu: "4"
+              nvidia.com/gpu: "1"
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+            - name: hf-cache
+              mountPath: /root/.cache/huggingface
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 90
+            periodSeconds: 30
+          # privileged required for /dev/video* camera device access
+          securityContext:
+            privileged: true
+      volumes:
+        - name: logs
+          persistentVolumeClaim:
+            claimName: safeguard-logs
+        - name: hf-cache
+          emptyDir: {}

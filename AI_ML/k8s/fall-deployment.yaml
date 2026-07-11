@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fall-detection
+  namespace: safeguard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fall-detection
+  template:
+    metadata:
+      labels:
+        app: fall-detection
+    spec:
+      containers:
+        - name: fall-detection
+          image: safeguard/fall-detection:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+      volumes:
+        - name: logs
+          persistentVolumeClaim:
+            claimName: safeguard-logs
