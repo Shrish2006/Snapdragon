@@ -16,6 +16,7 @@ resources:
   - fall-deployment.yaml
   - fall-service.yaml
   - ingress.yaml
+  - certificate.yaml
 
 images:
   - name: ghcr.io/shrish2006/snapdragon/app

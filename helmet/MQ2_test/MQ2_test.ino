@@ -1,42 +1,15 @@
-// MQ-2 Gas Sensor Test
-
-const int MQ2_PIN = A0;
+#define MQ7_PIN A1
 
 void setup() {
   Serial.begin(115200);
-
-  Serial.println("MQ-2 Gas Sensor Test");
-  Serial.println("Warming up sensor...");
-  delay(20000);  // 20 seconds warm-up
+  Serial.println("MQ-7 Sensor Test");
 }
 
 void loop() {
-  int sensorValue = analogRead(MQ2_PIN);
+  int sensorValue = analogRead(MQ7_PIN);
 
-  Serial.print("Gas Sensor Value: ");
+  Serial.print("MQ-7 Analog Value: ");
   Serial.println(sensorValue);
 
-  // Simple indication
-  if (sensorValue < 200) {
-    Serial.println("Air Quality: Clean");
-  }
-  else if (sensorValue < 500) {
-    Serial.println("Air Quality: Moderate");
-  }
-  else {
-    Serial.println("Air Quality: Gas/Smoke Detected!");
-  }
-
-  Serial.println("----------------------");
-  delay(1000);
+  delay(500);
 }
-
-/* Gas Sensor Value: 250
-Air Quality: Moderate
-----------------------
-Gas Sensor Value: 249
-Air Quality: Moderate
-----------------------
-Gas Sensor Value: 246
-Air Quality: Moderate
-----------------------*/
