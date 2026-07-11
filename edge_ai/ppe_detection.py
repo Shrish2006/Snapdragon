@@ -5,17 +5,21 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from huggingface_hub import hf_hub_download
 from ultralytics import YOLO
 
 logger = logging.getLogger(__name__)
 
-MODEL_PATH = "hf://gauravp22/vyra-yolo-ppe-detection/best.pt"
+HF_REPO = "gauravp22/vyra-yolo-ppe-detection"
+HF_FILE = "best.pt"
 
 
 class PPEDetector:
-    def __init__(self, model_path: str = MODEL_PATH):
-        logger.debug("Loading model: %s", model_path)
-        self.model = YOLO(model_path)
+    def __init__(self, repo_id: str = HF_REPO, filename: str = HF_FILE):
+        logger.debug("Downloading model from HF: %s/%s", repo_id, filename)
+        local_path = hf_hub_download(repo_id=repo_id, filename=filename)
+        logger.debug("Model cached at: %s", local_path)
+        self.model = YOLO(local_path)
         logger.debug("Model loaded successfully")
 
     def detect(self, frame: np.ndarray) -> tuple[np.ndarray, list[dict]]:
@@ -37,7 +41,7 @@ if __name__ == "__main__":
     from config import setup_logging
     setup_logging()
 
-    detector = PPEDetector()
+    detector = PPEDetector(HF_REPO, HF_FILE)
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
