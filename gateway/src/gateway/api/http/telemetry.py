@@ -50,7 +50,7 @@ async def ingest_telemetry(
     if not result.accepted:
         rejected = TelemetryRejectedResponse(issues=list(result.issues))
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content=rejected.model_dump(mode="json"),
         )
     assert result.state is not None  # accepted implies a state was produced

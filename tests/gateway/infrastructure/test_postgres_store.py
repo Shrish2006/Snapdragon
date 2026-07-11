@@ -39,17 +39,45 @@ def _event(helmet_id: str = "HLM-0007", occurred_at: datetime = T0) -> Telemetry
     )
 
 
+try:
+    import asyncpg  # noqa: F401
+except ImportError:
+    asyncpg = None  # type: ignore[assignment]
+
+
+def _pg_reachable() -> bool:
+    if asyncpg is None:
+        return False
+    import asyncio
+
+    try:
+        loop = asyncio.new_event_loop()
+        try:
+            conn = loop.run_until_complete(asyncpg.connect(PG_DSN, timeout=2))
+            loop.run_until_complete(conn.close())
+            return True
+        except Exception:
+            return False
+        finally:
+            loop.close()
+    except Exception:
+        return False
+
+
+pytestmark = pytest.mark.skipif(not _pg_reachable(), reason="Postgres not reachable at PG_DSN")
+
+
 @pytest.fixture
 async def store():
     s = PostgresEventStore(PG_DSN)
     await s.initialize()
     yield s
-    # Clean up this run's data so the next run (or a full-suite re-run
-    # against the same container) starts from a known-empty table.
-    if s._pool is not None:  # noqa: SLF001 — a test may have closed it early
-        async with s._pool.acquire() as conn:  # noqa: SLF001 — teardown only
-            await conn.execute("DELETE FROM events")
+    import asyncpg as apg
+
+    async with apg.connect(PG_DSN) as conn:
+        await conn.execute("DELETE FROM events")
     await s.close()
+
 
 @pytest.mark.asyncio
 async def test_append_then_query_round_trips(store) -> None:
