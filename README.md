@@ -82,9 +82,10 @@ docker compose up --build
 | Service | URL | Endpoints |
 |---------|-----|-----------|
 | app (dashboard) | http://localhost:3000 | Next.js UI, `/api/health` |
-| gateway | http://localhost:8080 | `/v1/telemetry`, `/v1/helmets`, `/v1/detections/ppe`, `/v1/status`, `/v1/events`, `/v1/ws` (WebSocket), `/health`, `/ready`, `/metrics` |
+| gateway | http://localhost:8080 | `/v1/telemetry` (HTTP), `/v1/helmets`, `/v1/detections/ppe`, `/v1/status`, `/v1/events`, `/v1/ws` (WebSocket), `/health`, `/ready`, `/metrics` |
 | ppe_detection | http://localhost:8001 | `/health`, `/ready`, `/detect`, `/stream` |
 | fall_detection | http://localhost:8002 | `/health` |
+| mqtt (Mosquitto) | localhost:1883 (MQTT) / localhost:9001 (WS-MQTT) | Helmet telemetry broker |
 
 `docker compose up` runs the hot-reload dev stack (see `compose.override.yml`). For a
 production-like run without overrides: `docker compose -f docker-compose.yml up --build`.
@@ -95,7 +96,10 @@ first start. GPU + camera are opt-in — see the commented block in `docker-comp
 ### Hardware / models (optional)
 
 - Flash the helmet firmware: open `helmet/helmet_firmware.ino` in the Arduino IDE,
-  select **Arduino UNO Q**, and upload.
+  select **Arduino UNO Q**, and upload. See `helmet/README.md` for library
+  requirements and configuration (`HELMET_ID`, `MQTT_HOST`, WiFi credentials).
+- Helmets connect to the Mosquitto broker at port 1883 and publish telemetry to
+  `safeguard/telemetry/{helmet_id}`. The gateway subscribes and ingests automatically.
 - Model weights are pulled automatically at runtime; `models/download_models.sh` is a
   placeholder for pre-fetching them.
 

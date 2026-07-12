@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     ppe_url: str = "http://ppe-detection:8000"
     fall_url: str = "http://fall-detection:8000"
 
+    # -- mock ML services (light dev mode) ----------------------------
+    mock_ml: bool = False
+    """When `True`, the gateway uses in-process mock clients instead of
+    calling real ML services. Set `MOCK_ML=true` for light dev mode
+    that skips the CPU-heavy ppe-detection and fall-detection containers."""
+
     # -- event history hot-buffer size, used by `InMemoryEventStore`
     #    (kept as the same name/default the old gateway's in-memory
     #    deque used) --------------------------------------------------
@@ -49,6 +55,16 @@ class Settings(BaseSettings):
     """Only read when `event_store_backend == "postgres"`."""
     sqlite_path: str = "./data/events.db"
     """Only read when `event_store_backend == "sqlite"`."""
+
+    # -- MQTT transport (optional — disabled when mqtt_broker_host is empty) --
+    mqtt_broker_host: str = ""
+    """Hostname or IP of the MQTT broker.  Empty string disables the MQTT
+    ingestion and presence adapters — the gateway runs HTTP-only.
+    Set to the broker service name (e.g. 'mosquitto') to enable."""
+    mqtt_broker_port: int = Field(default=1883, ge=1, le=65535)
+    mqtt_username: str = "gateway"
+    mqtt_password: str = ""
+    mqtt_topic_prefix: str = "safeguard"
 
 
 def settings_for_tests(**overrides) -> Settings:

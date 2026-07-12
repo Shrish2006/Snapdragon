@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mosquitto-config
+  namespace: safeguard
+data:
+  # Production broker config — anonymous access disabled; per-device ACLs.
+  # The passwd file must contain hashed credentials (see secret.example.yaml
+  # note) or be replaced by an auth plugin.  Generate hashes with:
+  #   mosquitto_passwd -b passwd gateway <password>
+  #   mosquitto_passwd -b passwd helmet-01 <device-password>
+  mosquitto.conf: |
+    listener 1883 0.0.0.0
+    protocol mqtt
+
+    allow_anonymous false
+    password_file /mosquitto/config/passwd
+    acl_file /mosquitto/config/acl.conf
+
+    log_dest stdout
+    log_type error
+    log_type warning
+    log_type notice
+    log_type information
+
+  acl.conf: |
+    # Gateway: full access
+    user gateway
+    topic readwrite safeguard/#
+
+    # Per-device: username must equal helmet_id
+    pattern write safeguard/telemetry/%u
+    pattern write safeguard/status/%u
+    pattern read  safeguard/command/%u/#
+
+  # IMPORTANT: this is a PLACEHOLDER.  Replace with real hashed credentials
+  # before applying, or mount a real Secret over this key.
+  # Generate:  mosquitto_passwd -c passwd gateway && mosquitto_passwd passwd helmet-01
+  passwd: |
+    # gateway:REPLACE_WITH_HASH
+    # helmet-01:REPLACE_WITH_HASH
