@@ -29,16 +29,6 @@ spec:
                 name: gateway
                 port:
                   number: 8080
-    - host: ppe-snapdragon.upayan.dev
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: ppe-detection
-                port:
-                  number: 8000
     - host: fall-snapdragon.upayan.dev
       http:
         paths:
