@@ -6,6 +6,11 @@ dependencies = [
     "fastapi[standard]",
     "uvicorn[standard]",
     "numpy",
+]
+
+[dependency-groups]
+dev = ["black>=24.0"]
+train = [
     "matplotlib",
     "scikit-learn",
     "onnxruntime",
@@ -22,6 +27,3 @@ torchvision = { index = "pytorch-cu124" }
 name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
 explicit = true
-
-[dependency-groups]
-dev = ["black>=24.0"]

@@ -27,7 +27,11 @@ from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import drawing as dw
-from camera import Camera
+
+try:
+    from camera import Camera
+except ImportError:
+    Camera = None  # Linux / headless — camera unavailable
 from config import setup_logging
 from inference import PoseDetector, PPEDetector, foot_point, point_in_polygon
 
@@ -111,6 +115,12 @@ _NO_SIGNAL_JPEG = _encode_jpeg(dw.no_signal_image())
 def _worker() -> None:
     """Owns the camera; grabs -> infers -> draws -> encodes -> publishes latest JPEG."""
     global _latest_jpeg
+
+    if Camera is None:
+        logger.warning("Camera not available — stream disabled, /detect still works")
+        _stop.wait()
+        return
+
     import comtypes
 
     comtypes.CoInitialize()  # DirectShow/COM must be initialised on this thread

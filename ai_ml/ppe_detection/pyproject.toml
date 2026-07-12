@@ -3,14 +3,23 @@ name = "ppe-detection"
 version = "1.0.0"
 requires-python = ">=3.11"
 dependencies = [
+    "fastapi[standard]",
+    "uvicorn[standard]",
+    "numpy",
+    "onnxruntime",
+    "pillow",
+]
+
+[dependency-groups]
+dev = ["black>=24.0"]
+gpu = [
     "torch",
     "torchvision",
     "ultralytics",
     "opencv-python-headless",
     "huggingface-hub>=1.23.0",
-    "fastapi[standard]",
-    "uvicorn[standard]",
-    "numpy",
+    "pygrabber",
+    "comtypes",
 ]
 
 [tool.uv.sources]
@@ -21,6 +30,3 @@ torchvision = { index = "pytorch-cu124" }
 name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
 explicit = true
-
-[dependency-groups]
-dev = ["black>=24.0"]

@@ -7,7 +7,7 @@ RUN pip install uv --no-cache-dir
 
 WORKDIR /app/fall_detection
 COPY fall_detection/pyproject.toml .
-RUN uv sync --no-dev
+RUN uv sync --no-dev --no-group train
 
 
 FROM python:3.11-slim-bookworm AS runtime
