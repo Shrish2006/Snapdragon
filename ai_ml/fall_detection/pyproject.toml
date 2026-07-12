@@ -6,6 +6,7 @@ dependencies = [
     "fastapi[standard]",
     "uvicorn[standard]",
     "numpy",
+    "onnxruntime",
 ]
 
 [dependency-groups]
@@ -13,7 +14,6 @@ dev = ["black>=24.0"]
 train = [
     "matplotlib",
     "scikit-learn",
-    "onnxruntime",
     "onnx",
     "torch",
     "torchvision",

@@ -1,5 +1,6 @@
-# Build context: AI_ML/
+# Build context: ai_ml/
 # docker build -f ppe_detection/Dockerfile -t safeguard/ppe-detection:latest .
+# Platforms: linux/amd64, linux/arm64 — runtime deps are pure ONNX (no CUDA).
 
 FROM python:3.11-slim-bookworm AS deps
 
