@@ -46,13 +46,7 @@ spec:
           env:
             - name: LOG_FILE_PATH
               value: ""
-          resources:
-            requests:
-              memory: "1Gi"
-              cpu: "2"
-            limits:
-              memory: "3Gi"
-              cpu: "4"
+          resources: {}
           volumeMounts:
             - name: hf-cache
               mountPath: /cache
