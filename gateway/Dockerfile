@@ -12,10 +12,11 @@ FROM python:3.11-slim-bookworm AS runtime
 WORKDIR /app
 
 COPY --from=deps /app/.venv ./.venv
-COPY config.py app.py ./
+COPY src ./src
 
 ENV PATH="/app/.venv/bin:$PATH" \
     VIRTUAL_ENV="/app/.venv" \
+    PYTHONPATH="/app/src" \
     PPE_URL=http://ppe-detection:8000 \
     FALL_URL=http://fall-detection:8000 \
     LOG_LEVEL=INFO \
@@ -30,4 +31,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "gateway.main:app", "--host", "0.0.0.0", "--port", "8080"]
