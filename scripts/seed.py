@@ -21,7 +21,7 @@ from datetime import datetime, timedelta, timezone
 
 # ── bootstrap ───────────────────────────────────────────────────────────
 # Allow importing gateway packages when run from the project root.
-_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__)) if "__file__" in locals() or "__file__" in globals() else os.getcwd()
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_SCRIPT_DIR, "..", "gateway", "src"))
 # ── sample data ─────────────────────────────────────────────────────────
 
@@ -85,12 +85,16 @@ def _pick_readings() -> list[dict]:
     readings = [
         {
             "value": _random_imu(""),
-            "captured_at": (datetime.now(timezone.utc) - timedelta(minutes=random.randint(0, 5))).isoformat(),
+            "captured_at": (
+                datetime.now(timezone.utc) - timedelta(minutes=random.randint(0, 5))
+            ).isoformat(),
         }
     ]
     kinds = random.sample(SENSOR_TYPES[1:], k=random.randint(1, 3))
     for k in kinds:
-        captured = (datetime.now(timezone.utc) - timedelta(seconds=random.randint(0, 60))).isoformat()
+        captured = (
+            datetime.now(timezone.utc) - timedelta(seconds=random.randint(0, 60))
+        ).isoformat()
         if k == "environment":
             readings.append({"value": _random_environment(""), "captured_at": captured})
         elif k in ("gas_lpg", "carbon_monoxide"):
@@ -112,6 +116,7 @@ def _build_batch(helmet_id: str, seq: int, base_time: datetime) -> dict:
 
 
 # ── API seeder ──────────────────────────────────────────────────────────
+
 
 async def seed_via_api(gateway_url: str) -> None:
     """Send telemetry batches through the gateway HTTP API.
@@ -157,12 +162,42 @@ EVENT_TYPES = [
 ]
 
 SAMPLE_DETECTIONS = [
-    {"detections": [{"class_name": "helmet", "confidence": 0.95, "bbox": [120, 80, 300, 250], "tracker_id": 1}]},
-    {"detections": [{"class_name": "vest", "confidence": 0.88, "bbox": [50, 100, 200, 300], "tracker_id": 2}]},
-    {"detections": [
-        {"class_name": "helmet", "confidence": 0.97, "bbox": [130, 70, 310, 260], "tracker_id": 3},
-        {"class_name": "vest", "confidence": 0.91, "bbox": [40, 90, 210, 310], "tracker_id": 4},
-    ]},
+    {
+        "detections": [
+            {
+                "class_name": "helmet",
+                "confidence": 0.95,
+                "bbox": [120, 80, 300, 250],
+                "tracker_id": 1,
+            }
+        ]
+    },
+    {
+        "detections": [
+            {
+                "class_name": "vest",
+                "confidence": 0.88,
+                "bbox": [50, 100, 200, 300],
+                "tracker_id": 2,
+            }
+        ]
+    },
+    {
+        "detections": [
+            {
+                "class_name": "helmet",
+                "confidence": 0.97,
+                "bbox": [130, 70, 310, 260],
+                "tracker_id": 3,
+            },
+            {
+                "class_name": "vest",
+                "confidence": 0.91,
+                "bbox": [40, 90, 210, 310],
+                "tracker_id": 4,
+            },
+        ]
+    },
 ]
 
 
@@ -222,7 +257,9 @@ async def seed_direct_db(dsn: str, clear: bool = False) -> None:
 
             # helmet.online at first event, helmet.offline at the end
             first_time = base_time + timedelta(minutes=BATCH_INTERVAL_MINUTES)
-            last_time = base_time + timedelta(minutes=BATCHES_PER_HELMET * BATCH_INTERVAL_MINUTES)
+            last_time = base_time + timedelta(
+                minutes=BATCHES_PER_HELMET * BATCH_INTERVAL_MINUTES
+            )
 
             await conn.execute(
                 "INSERT INTO events (event_id, event_type, helmet_id, occurred_at, payload_json) "
@@ -252,6 +289,7 @@ async def seed_direct_db(dsn: str, clear: bool = False) -> None:
 
 
 # ── CLI ─────────────────────────────────────────────────────────────────
+
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Seed Safeguard dev database")

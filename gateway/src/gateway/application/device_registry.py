@@ -61,3 +61,20 @@ class DeviceRegistryService:
                 await self._repository.upsert(offline_state)
                 changed.append(offline_state)
         return changed
+
+    async def mark_offline(self, helmet_id: HelmetId) -> HelmetState | None:
+        """Mark one specific helmet offline immediately.
+
+        Called by the MQTT presence adapter on Last Will & Testament receipt
+        for event-driven offline detection — faster than waiting up to 60 s
+        for `sweep_offline` to notice the staleness.
+
+        Returns the updated `HelmetState`, or `None` if the helmet is unknown
+        (LWT from a device the gateway never ingested telemetry from).
+        """
+        state = await self._repository.get(helmet_id)
+        if state is None:
+            return None
+        offline_state = state.mark_offline()
+        await self._repository.upsert(offline_state)
+        return offline_state

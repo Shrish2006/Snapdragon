@@ -93,10 +93,15 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     if isinstance(container.event_store, (SQLiteEventStore, PostgresEventStore)):
         await container.event_store.initialize()
 
-    async with _run_background_tasks(
+    _bg: list[Callable[[], Awaitable[None]]] = [
         container.processing_pipeline.run,
         container.subscription_manager.run,
-    ):
+    ]
+    if container.mqtt_ingestion_adapter is not None:
+        _bg.append(container.mqtt_ingestion_adapter.run)
+    if container.mqtt_presence_adapter is not None:
+        _bg.append(container.mqtt_presence_adapter.run)
+    async with _run_background_tasks(*_bg):
         app.state.ready = True
         logger.info("gateway ready")
         try:
@@ -143,10 +148,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         description=(
             "Real-time safety helmet telemetry ingestion, ML detection (PPE), "
             "and event streaming backend.\n\n"
-            "Helmets report sensor readings (IMU, gas, environment, sound) via HTTP. "
+            "Helmets report sensor readings (IMU, gas, environment, sound) via "
+            "**MQTT** (Mosquitto broker, `safeguard/telemetry/{helmet_id}`) or "
+            "**HTTP** (`POST /v1/telemetry`). "
             "The gateway validates, persists, and streams them to connected dashboards "
             "over WebSocket. On-demand PPE detection runs uploaded frames against a "
             "YOLO model.\n\n"
+            "MQTT is enabled when `MQTT_BROKER_HOST` is set; omitting it leaves the "
+            "gateway in HTTP-only mode.\n\n"
             "---\n"
             "**Liveness** `GET /health` — always 200 if the process is alive.\n"
             "**Readiness** `GET /ready` — 503 until background tasks finish starting "

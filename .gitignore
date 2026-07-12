@@ -24,6 +24,9 @@ node_modules/
 # Kubernetes: local filled-in secret copies
 k8s/*.local.yaml
 
+# Mosquitto dev credentials — generated locally, never committed
+gateway/mosquitto/passwd
+
 # Tooling caches
 .ruff_cache/
 .pytest_cache/
