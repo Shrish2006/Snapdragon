@@ -1,0 +1,9 @@
+# Snapdragon ARM64 runtime deps for the ONNX pipeline (app.py).
+# NO torch, NO opencv, NO ultralytics — none have Windows ARM64 wheels.
+# onnxruntime-qnn provides the Hexagon NPU (QNN) execution provider.
+onnxruntime-qnn
+numpy
+pillow
+pygrabber          # DirectShow camera via comtypes (pulls in comtypes)
+fastapi[standard]
+uvicorn[standard]
