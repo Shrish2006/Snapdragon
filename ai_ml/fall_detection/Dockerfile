@@ -16,6 +16,8 @@ WORKDIR /app/fall_detection
 
 COPY --from=deps /app/fall_detection/.venv ./.venv
 COPY fall_detection/app.py .
+COPY fall_detection/fall_detection.py .
+COPY fall_detection/models/ ./models/
 
 ENV PATH="/app/fall_detection/.venv/bin:$PATH"
 ENV VIRTUAL_ENV="/app/fall_detection/.venv"

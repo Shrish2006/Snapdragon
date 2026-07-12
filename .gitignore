@@ -15,9 +15,12 @@ archive*/
 logs/
 
 # EDA output (generated locally, not for production)
-AI_ML/fall_detection/eda_plots/
-AI_ML/fall_detection/training_plots/
-AI_ML/fall_detection/models/
+ai_ml/fall_detection/eda_plots/
+ai_ml/fall_detection/training_plots/
+# model binaries are large and built locally — directory is tracked so Docker COPY succeeds
+ai_ml/fall_detection/models/*.onnx
+ai_ml/fall_detection/models/*.pt
+ai_ml/fall_detection/models/*.npz
 
 # Node (root-level safety; app/ has its own ignore too)
 node_modules/

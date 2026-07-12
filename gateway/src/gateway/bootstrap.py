@@ -38,6 +38,7 @@ from gateway.infrastructure.ml_clients.ppe_client import PPEDetectionHttpClient
 from gateway.infrastructure.persistence.in_memory import InMemoryEventStore
 from gateway.infrastructure.registry.in_memory import InMemoryHelmetRepository
 from gateway.workers.pipeline import EventProcessor, ProcessingPipeline
+from gateway.workers.processors.fall_detection_processor import FallDetectionProcessor
 from gateway.workers.processors.persistence_processor import PersistenceProcessor
 
 _HTTP_CLIENT_TIMEOUT_SECONDS = 30.0
@@ -100,10 +101,10 @@ def build_container(settings: Settings) -> Container:
         {"ppe-detection": ppe_client, "fall-detection": fall_client}
     )
 
-    # The only Phase 4 processor is persistence — see
-    # `workers/processors/__init__.py` for why threshold/fusion/risk
-    # processors aren't invented here.
-    processors: list[EventProcessor] = [PersistenceProcessor(event_store)]
+    processors: list[EventProcessor] = [
+        PersistenceProcessor(event_store),
+        FallDetectionProcessor(fall_client, event_bus),
+    ]
     processing_pipeline = ProcessingPipeline(event_bus, processors)
     subscription_manager = SubscriptionManager(event_bus)
 
