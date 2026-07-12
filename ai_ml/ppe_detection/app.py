@@ -79,9 +79,9 @@ _roi_lock = threading.Lock()
 ROI_FILE = HERE / "roi.json"
 
 # ── stream state ──
-_latest_frame: np.ndarray | None = None   # RGB; written by capture thread
+_latest_frame: np.ndarray | None = None  # RGB; written by capture thread
 _frame_lock = threading.Lock()
-_latest_jpeg: bytes | None = None         # written by inference thread
+_latest_jpeg: bytes | None = None  # written by inference thread
 _stop = threading.Event()
 _capture_thread: threading.Thread | None = None
 _worker_thread: threading.Thread | None = None
@@ -111,7 +111,8 @@ def _save_roi(pts: list) -> None:
 def _encode_jpeg(frame_rgb: np.ndarray) -> bytes:
     """Encode an RGB uint8 ndarray to JPEG bytes via cv2 (5-10× faster than PIL)."""
     ok, buf = cv2.imencode(
-        ".jpg", frame_rgb[:, :, ::-1],  # RGB→BGR for cv2
+        ".jpg",
+        frame_rgb[:, :, ::-1],  # RGB→BGR for cv2
         [cv2.IMWRITE_JPEG_QUALITY, STREAM_QUALITY],
     )
     return buf.tobytes() if ok else b""
@@ -138,9 +139,11 @@ def _capture() -> None:
         return
 
     import platform
+
     _windows = platform.system() == "Windows"
     if _windows:
         import comtypes
+
         comtypes.CoInitialize()
 
     cam = Camera(CAMERA_INDEX, swap_rb=CAMERA_SWAP_RB)
@@ -168,6 +171,7 @@ def _capture() -> None:
     cam.close()
     if _windows:
         import comtypes
+
         comtypes.CoUninitialize()
 
 
@@ -211,6 +215,7 @@ def _worker() -> None:
             show_red = now < zone_hold_until
 
             from PIL import Image as _Image
+
             img = _Image.fromarray(frame)
             img = dw.draw_zone(img, poly, show_red)
             if DEBUG_POSE:

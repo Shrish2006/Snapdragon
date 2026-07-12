@@ -23,13 +23,10 @@ def list_cameras() -> list[str]:
     """Return camera device names indexed by position (index 0, 1, ...)."""
     if _IS_LINUX:
         import os
+
         # Probe by path existence — faster and avoids blocking on a dead V4L2 node.
         # Only include capture-capable nodes (even-indexed; odd are metadata-only).
-        return [
-            f"/dev/video{i}"
-            for i in range(8)
-            if os.path.exists(f"/dev/video{i}")
-        ]
+        return [f"/dev/video{i}" for i in range(8) if os.path.exists(f"/dev/video{i}")]
     from pygrabber.dshow_graph import FilterGraph
 
     return FilterGraph().get_input_devices()
@@ -43,8 +40,8 @@ class Camera:
         self.swap_rb = swap_rb
         self._lock = threading.Lock()
         self._latest: np.ndarray | None = None
-        self._graph = None   # Windows only
-        self._cap = None     # Linux only
+        self._graph = None  # Windows only
+        self._cap = None  # Linux only
         self.open()
 
     # ── Linux / OpenCV ────────────────────────────────────────────────────
@@ -128,9 +125,7 @@ class Camera:
             if self._latest is None:
                 return None
             return (
-                self._latest[:, :, ::-1].copy()
-                if self.swap_rb
-                else self._latest.copy()
+                self._latest[:, :, ::-1].copy() if self.swap_rb else self._latest.copy()
             )
 
     def _close_windows(self) -> None:
