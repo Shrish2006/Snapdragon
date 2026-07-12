@@ -1,32 +1,33 @@
-// DF-90 FSR Test Code
+// Helmet Wear Detection using FSR
 // Arduino UNO Q
 
-const int fsrPin = A0;   // Analog output connected to A0
+const int FSR_PIN = A0;
+const int THRESHOLD = 100;
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("DF-90 FSR Test");
+  Serial.println("Helmet Wear Detection Started");
 }
 
 void loop() {
-  int sensorValue = analogRead(fsrPin);
+  long sum = 0;
 
-  Serial.print("Raw Value: ");
-  Serial.print(sensorValue);
-
-  // Simple pressure indication
-  if (sensorValue < 50) {
-    Serial.println("  --> No Pressure");
-  }
-  else if (sensorValue < 200) {
-    Serial.println("  --> Light Pressure");
-  }
-  else if (sensorValue < 500) {
-    Serial.println("  --> Medium Pressure");
-  }
-  else {
-    Serial.println("  --> Heavy Pressure");
+  // Take 10 readings and average them
+  for (int i = 0; i < 10; i++) {
+    sum += analogRead(FSR_PIN);
+    delay(5);
   }
 
-  delay(100);
+  int fsrValue = sum / 10;
+
+  Serial.print("FSR Value: ");
+  Serial.print(fsrValue);
+
+  if (fsrValue >= THRESHOLD) {
+    Serial.println("  --> Helmet Worn");
+  } else {
+    Serial.println("  --> Helmet Not Worn");
+  }
+
+  delay(200);
 }
