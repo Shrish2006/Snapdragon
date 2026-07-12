@@ -31,3 +31,10 @@ void loop() {
 
   delay(200);
 }
+/*
+FSR Value: 62  --> Helmet Not Worn
+FSR Value: 94  --> Helmet Not Worn
+FSR Value: 102  --> Helmet Not Worn
+FSR Value: 97  --> Helmet Not Worn
+FSR Value: 125  --> Helmet Not Worn
+*/
