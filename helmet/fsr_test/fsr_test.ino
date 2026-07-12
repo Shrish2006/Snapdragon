@@ -2,7 +2,7 @@
 // Arduino UNO Q
 
 const int FSR_PIN = A0;
-const int THRESHOLD = 100;
+const int THRESHOLD = 90;
 
 void setup() {
   Serial.begin(115200);
