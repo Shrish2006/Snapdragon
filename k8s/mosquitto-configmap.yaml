@@ -33,9 +33,9 @@ data:
     pattern write safeguard/status/%u
     pattern read  safeguard/command/%u/#
 
-  # IMPORTANT: this is a PLACEHOLDER.  Replace with real hashed credentials
-  # before applying, or mount a real Secret over this key.
-  # Generate:  mosquitto_passwd -c passwd gateway && mosquitto_passwd passwd helmet-01
+  # Hashes generated with: mosquitto_passwd -b passwd <user> <pass>
+  # gateway password is stored in safeguard-secrets.MQTT_PASSWORD
+  # helmet-01 authenticates with an empty password (firmware default)
   passwd: |
-    # gateway:REPLACE_WITH_HASH
-    # helmet-01:REPLACE_WITH_HASH
+    gateway:$7$1000$0sFb3DV1oM4QMOhwwdGX3k83asRlTsV4Qwq4fn7Jeis18XQJi04BtA/YkTR1v0tvs398TW2aoNFMGj1fmhRwwA==$cfRJ5HnwRk66d4VNHV5WeIVavRr9rTRM8A2lazNucdkSDm/QXDHCK2t2/S4VK2DMOMSdL8Re668qUyBny5q7Bg==
+    helmet-01:$7$1000$XyHMmX28d6KA5sVf5IaQIa4I9f+JxB4TM8g8wgsjHeIo49nw9jcfmSZDCQ0lVoCF5QWPLwmWfEcOE8zr/1phIw==$a8BdozbVYVizZc6YP9V3762tkokRBJP39qDr5bslvpLHoBth0ed5LcudoHQ8h2tZSSI24B+aXM4P7vVtI74J8w==

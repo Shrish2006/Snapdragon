@@ -6,14 +6,13 @@ metadata:
   labels:
     app.kubernetes.io/name: mosquitto
 spec:
-  # ClusterIP: internal-only.  Helmets on the physical network must reach the
-  # broker via a NodePort or LoadBalancer service added separately.
-  # To expose externally:
-  #   kubectl patch svc mosquitto -n safeguard -p '{"spec":{"type":"LoadBalancer"}}'
-  type: ClusterIP
+  # NodePort 31883 — firmware targets 138.201.157.147:31883 from the field.
+  # Ensure VPS firewall allows TCP 31883 inbound.
+  type: NodePort
   selector:
     app.kubernetes.io/name: mosquitto
   ports:
     - name: mqtt
       port: 1883
       targetPort: 1883
+      nodePort: 31883
