@@ -101,6 +101,22 @@ static char TOPIC_STATUS[80];
 static char TOPIC_COMMAND[80];
 
 // ════════════════════════════════════════════════════════════════════════════
+// Sensor value structs — defined here so Arduino IDE prototype injection
+// sees them before the auto-generated readImu() / readEnv() prototypes.
+// ════════════════════════════════════════════════════════════════════════════
+
+struct ImuData {
+  float ax, ay, az, mag;  // g
+  float gx, gy, gz;       // deg/s
+};
+
+struct EnvData {
+  float temp_c;
+  float humidity_pct;
+  float heat_index_c;
+};
+
+// ════════════════════════════════════════════════════════════════════════════
 // Peripheral instances
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -184,7 +200,7 @@ static void publishStatus(const char* statusStr) {
 // MQTT command callback  (gateway → helmet)
 // ════════════════════════════════════════════════════════════════════════════
 
-static void onCommand(const char* topic, byte* payload, unsigned int length) {
+static void onCommand(char* topic, byte* payload, unsigned int length) {
   JsonDocument cmd;
   if (deserializeJson(cmd, payload, length) != DeserializationError::Ok) return;
 
@@ -245,21 +261,6 @@ static void connectMqtt() {
     }
   }
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-// Sensor value structs
-// ════════════════════════════════════════════════════════════════════════════
-
-struct ImuData {
-  float ax, ay, az, mag;  // g
-  float gx, gy, gz;       // deg/s
-};
-
-struct EnvData {
-  float temp_c;
-  float humidity_pct;
-  float heat_index_c;
-};
 
 // ════════════════════════════════════════════════════════════════════════════
 // Sensor read functions
