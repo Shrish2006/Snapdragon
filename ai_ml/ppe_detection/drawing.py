@@ -3,7 +3,6 @@
 Colours are RGB (Pillow), not BGR (OpenCV).
 """
 
-import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 GREEN = (0, 255, 0)
