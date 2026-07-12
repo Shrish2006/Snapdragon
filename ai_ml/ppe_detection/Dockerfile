@@ -7,7 +7,7 @@ RUN pip install uv --no-cache-dir
 
 WORKDIR /app/ppe_detection
 COPY ppe_detection/pyproject.toml .
-RUN uv sync --no-dev
+RUN uv sync --no-dev --no-group gpu
 
 
 FROM python:3.11-slim-bookworm AS runtime
@@ -24,8 +24,13 @@ WORKDIR /app/ppe_detection
 COPY --from=deps /app/ppe_detection/.venv ./.venv
 
 COPY config.py /app/config.py
-COPY ppe_detection/ppe_detection.py .
+COPY ppe_detection/drawing.py .
+COPY ppe_detection/camera.py .
+COPY ppe_detection/inference.py .
 COPY ppe_detection/app.py .
+COPY ppe_detection/yolov8n-pose.onnx .
+COPY ppe_detection/best.onnx .
+COPY ppe_detection/roi.json .
 
 ENV PYTHONPATH=/app
 ENV PATH="/app/ppe_detection/.venv/bin:$PATH"

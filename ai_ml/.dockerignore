@@ -8,8 +8,6 @@
 k8s
 archive*
 *.zip
-*.pt
-*.onnx
 logs
 *.log
 .env
