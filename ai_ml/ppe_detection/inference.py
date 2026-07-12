@@ -29,16 +29,25 @@ except Exception:  # noqa: BLE001
 
 
 def _make_session(model_path: str) -> ort.InferenceSession:
-    if _HAVE_QNN:
-        try:
-            return ort.InferenceSession(
-                model_path,
-                providers=["QNNExecutionProvider", "CPUExecutionProvider"],
-                provider_options=[{"backend_path": "QnnHtp.dll"}, {}],
-            )
-        except Exception:  # noqa: BLE001
-            logger.exception("QNN session failed, falling back to CPU")
-    return ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+    """Prefer NPU (QNN) -> GPU (DirectML) -> CPU, using whatever is installed."""
+    avail = ort.get_available_providers()
+    providers: list = []
+    opts: list = []
+    if _HAVE_QNN:  # onnxruntime-qnn -> Hexagon NPU
+        providers.append("QNNExecutionProvider")
+        opts.append({"backend_path": "QnnHtp.dll"})
+    if "DmlExecutionProvider" in avail:  # onnxruntime-directml -> Adreno GPU
+        providers.append("DmlExecutionProvider")
+        opts.append({})
+    providers.append("CPUExecutionProvider")
+    opts.append({})
+    try:
+        sess = ort.InferenceSession(model_path, providers=providers, provider_options=opts)
+        logger.info("ONNX session running on: %s", sess.get_providers())
+        return sess
+    except Exception:  # noqa: BLE001
+        logger.exception("session (%s) failed, using CPU only", providers)
+        return ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
 
 
 def letterbox(frame_rgb: np.ndarray, size: int = IMGSZ):

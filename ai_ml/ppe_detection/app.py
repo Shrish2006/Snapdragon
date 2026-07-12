@@ -45,6 +45,7 @@ PPE_NAMES = {
 }
 
 CAMERA_INDEX = int(os.getenv("CAMERA_INDEX", "0"))
+CAMERA_SWAP_RB = bool(int(os.getenv("CAMERA_SWAP_RB", "0")))  # set 1 if colors look swapped
 STREAM_QUALITY = int(os.getenv("STREAM_QUALITY", "85"))
 DEBUG_POSE = bool(int(os.getenv("DEBUG_POSE", "0")))
 ZONE_HOLD_SECS = 1.2  # keep zone red briefly after last trigger (anti-flicker)
@@ -101,7 +102,7 @@ def _worker() -> None:
     import comtypes
 
     comtypes.CoInitialize()  # DirectShow/COM must be initialised on this thread
-    cam = Camera(CAMERA_INDEX)
+    cam = Camera(CAMERA_INDEX, swap_rb=CAMERA_SWAP_RB)
     fails = warmup = 0
     zone_hold_until = 0.0
 

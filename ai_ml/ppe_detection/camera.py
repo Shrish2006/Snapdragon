@@ -22,8 +22,9 @@ def list_cameras() -> list[str]:
 
 
 class Camera:
-    def __init__(self, index: int = 0):
+    def __init__(self, index: int = 0, swap_rb: bool = False):
         self.index = index
+        self.swap_rb = swap_rb  # DirectShow often returns BGR; swap to RGB for YOLO
         self._latest: np.ndarray | None = None
         self._lock = threading.Lock()
         self._graph = None
@@ -57,7 +58,9 @@ class Camera:
             logger.exception("grab failed")
             return None
         with self._lock:
-            return None if self._latest is None else self._latest.copy()
+            if self._latest is None:
+                return None
+            return self._latest[:, :, ::-1].copy() if self.swap_rb else self._latest.copy()
 
     def reopen(self) -> None:
         self.close()
