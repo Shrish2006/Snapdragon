@@ -8,7 +8,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
-
 from gateway.config import settings_for_tests
 from gateway.main import create_app
 

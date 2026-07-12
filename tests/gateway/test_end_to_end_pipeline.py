@@ -13,12 +13,11 @@ context manager does not run ASGI lifespan events.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
 import json
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import httpx
-
 from gateway.config import settings_for_tests
 from gateway.domain.events.types import EventType
 from gateway.main import create_app

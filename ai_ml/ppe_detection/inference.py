@@ -20,7 +20,9 @@ IMGSZ = 640
 try:
     import onnxruntime_qnn as _qnn
 
-    ort.register_execution_provider_library("QNNExecutionProvider", _qnn.get_library_path())
+    ort.register_execution_provider_library(
+        "QNNExecutionProvider", _qnn.get_library_path()
+    )
     _HAVE_QNN = True
     logger.info("QNN execution provider registered")
 except Exception:  # noqa: BLE001
@@ -42,7 +44,9 @@ def _make_session(model_path: str) -> ort.InferenceSession:
     providers.append("CPUExecutionProvider")
     opts.append({})
     try:
-        sess = ort.InferenceSession(model_path, providers=providers, provider_options=opts)
+        sess = ort.InferenceSession(
+            model_path, providers=providers, provider_options=opts
+        )
         logger.info("ONNX session running on: %s", sess.get_providers())
         return sess
     except Exception:  # noqa: BLE001
@@ -99,7 +103,9 @@ def _scale_back(pts_x, pts_y, r, dx, dy):
 class PPEDetector:
     """YOLOv8 detection -> list of {bbox(xyxy), cls, name, conf} in original coords."""
 
-    def __init__(self, model_path: str, names: dict, conf: float = 0.35, iou: float = 0.45):
+    def __init__(
+        self, model_path: str, names: dict, conf: float = 0.35, iou: float = 0.45
+    ):
         self.session = _make_session(model_path)
         self.input_name = self.session.get_inputs()[0].name
         self.names = names
@@ -122,12 +128,14 @@ class PPEDetector:
         for i in _nms(xyxy, conf, self.iou):
             x1, y1 = _scale_back(xyxy[i, 0], xyxy[i, 1], r, dx, dy)
             x2, y2 = _scale_back(xyxy[i, 2], xyxy[i, 3], r, dx, dy)
-            dets.append({
-                "bbox": [float(x1), float(y1), float(x2), float(y2)],
-                "cls": int(cls[i]),
-                "name": self.names[int(cls[i])],
-                "conf": float(conf[i]),
-            })
+            dets.append(
+                {
+                    "bbox": [float(x1), float(y1), float(x2), float(y2)],
+                    "cls": int(cls[i]),
+                    "name": self.names[int(cls[i])],
+                    "conf": float(conf[i]),
+                }
+            )
         return dets
 
 
@@ -156,11 +164,13 @@ class PoseDetector:
             kpts[:, 0], kpts[:, 1] = _scale_back(kpts[:, 0], kpts[:, 1], r, dx, dy)
             x1, y1 = _scale_back(xyxy[i, 0], xyxy[i, 1], r, dx, dy)
             x2, y2 = _scale_back(xyxy[i, 2], xyxy[i, 3], r, dx, dy)
-            persons.append({
-                "bbox": [float(x1), float(y1), float(x2), float(y2)],
-                "conf": float(preds[i, 4]),
-                "keypoints": kpts,  # (17,3) x,y in original coords + visibility
-            })
+            persons.append(
+                {
+                    "bbox": [float(x1), float(y1), float(x2), float(y2)],
+                    "conf": float(preds[i, 4]),
+                    "keypoints": kpts,  # (17,3) x,y in original coords + visibility
+                }
+            )
         return persons
 
 
@@ -188,7 +198,9 @@ def point_in_polygon(x: float, y: float, poly: np.ndarray) -> bool:
     for i in range(n):
         xi, yi = poly[i]
         xj, yj = poly[j]
-        if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi + 1e-12) + xi):
+        if ((yi > y) != (yj > y)) and (
+            x < (xj - xi) * (y - yi) / (yj - yi + 1e-12) + xi
+        ):
             inside = not inside
         j = i
     return inside

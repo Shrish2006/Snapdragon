@@ -14,3 +14,6 @@ dependencies = [
     "asyncpg>=0.30",
     "aiomqtt>=2.0",
 ]
+
+[dependency-groups]
+dev = ["black>=24.0"]

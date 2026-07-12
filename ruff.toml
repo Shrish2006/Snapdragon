@@ -1,5 +1,9 @@
 target-version = "py311"
 
+[lint]
+extend-select = ["I"]
+extend-ignore = ["E501"]
+
 [lint.per-file-ignores]
 # sys.path bootstrap before local imports
 "ai_ml/ppe_detection/app.py" = ["E402"]

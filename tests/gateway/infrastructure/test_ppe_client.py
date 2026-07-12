@@ -5,7 +5,6 @@ Uses `httpx.MockTransport` — no real ppe-detection service is contacted.
 
 import httpx
 import pytest
-
 from gateway.application.ports import ServiceHealth
 from gateway.infrastructure.ml_clients.errors import (
     MLServiceResponseError,

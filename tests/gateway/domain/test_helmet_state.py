@@ -3,7 +3,6 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
-
 from gateway.domain.helmets.models import HelmetState, HelmetStatus
 from gateway.domain.telemetry.models import (
     AnalogGasReading,

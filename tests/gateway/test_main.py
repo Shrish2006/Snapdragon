@@ -2,7 +2,6 @@
 the one endpoint every deployment healthcheck/probe already depends on."""
 
 from fastapi.testclient import TestClient
-
 from gateway.config import Settings
 from gateway.main import create_app
 

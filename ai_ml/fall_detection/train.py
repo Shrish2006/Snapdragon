@@ -20,6 +20,7 @@ import sys
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,36 +30,45 @@ from torch.utils.data import DataLoader, TensorDataset
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from eda import load_dataset, DATASET_DEFAULT  # noqa: E402
+from eda import DATASET_DEFAULT, load_dataset  # noqa: E402
 
 MODELS_DIR = HERE / "models"
-PLOTS_DIR  = HERE / "training_plots"
+PLOTS_DIR = HERE / "training_plots"
 
 # ── hyper-parameters ──────────────────────────────────────────────────────────
-WINDOW   = 200    # samples (1 s @ 200 Hz)
-STRIDE   = 50     # 75 % overlap
-BATCH    = 256
-LR       = 1e-3
-EPOCHS   = 50
-ES_PAT   = 7      # early-stop patience (val loss)
-LR_PAT   = 3      # ReduceLROnPlateau patience
+WINDOW = 200  # samples (1 s @ 200 Hz)
+STRIDE = 50  # 75 % overlap
+BATCH = 256
+LR = 1e-3
+EPOCHS = 50
+ES_PAT = 7  # early-stop patience (val loss)
+LR_PAT = 3  # ReduceLROnPlateau patience
 
 # ── subject-wise split ────────────────────────────────────────────────────────
 TEST_SUBJECTS = {
-    "SA19", "SA20", "SA21", "SA22", "SA23",
-    "SE11", "SE12", "SE13", "SE14", "SE15",
+    "SA19",
+    "SA20",
+    "SA21",
+    "SA22",
+    "SA23",
+    "SE11",
+    "SE12",
+    "SE13",
+    "SE14",
+    "SE15",
 }
 
 
 # ── data helpers ──────────────────────────────────────────────────────────────
 
+
 def make_windows(records: list[dict]) -> tuple[np.ndarray, np.ndarray, list[str]]:
     """Slice every recording into fixed (WINDOW, 6) chunks."""
     X, y, groups = [], [], []
     for r in records:
-        data  = r["data"]          # (N, 6) float32, SI units
+        data = r["data"]  # (N, 6) float32, SI units
         label = 1 if r["is_fall"] else 0
-        subj  = r["subject"]
+        subj = r["subject"]
         for start in range(0, len(data) - WINDOW + 1, STRIDE):
             X.append(data[start : start + WINDOW])
             y.append(label)
@@ -77,30 +87,36 @@ def normalise(
     X_tr: np.ndarray, X_te: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Per-channel StandardScaler fitted on training data only."""
-    mean = X_tr.mean(axis=(0, 1))   # (6,)
-    std  = X_tr.std(axis=(0, 1)) + 1e-8
+    mean = X_tr.mean(axis=(0, 1))  # (6,)
+    std = X_tr.std(axis=(0, 1)) + 1e-8
     return (X_tr - mean) / std, (X_te - mean) / std, mean, std
 
 
 # ── model ─────────────────────────────────────────────────────────────────────
+
 
 class FallCNN(nn.Module):
     def __init__(self):
         super().__init__()
         self.features = nn.Sequential(
             nn.Conv1d(6, 32, kernel_size=7, padding=3),
-            nn.BatchNorm1d(32), nn.ReLU(),
+            nn.BatchNorm1d(32),
+            nn.ReLU(),
             nn.Conv1d(32, 64, kernel_size=5, padding=2),
-            nn.BatchNorm1d(64), nn.ReLU(),
+            nn.BatchNorm1d(64),
+            nn.ReLU(),
             nn.MaxPool1d(2),
             nn.Conv1d(64, 128, kernel_size=3, padding=1),
-            nn.BatchNorm1d(128), nn.ReLU(),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
             nn.MaxPool1d(2),
         )
         self.head = nn.Sequential(
             nn.AdaptiveAvgPool1d(1),
             nn.Flatten(),
-            nn.Linear(128, 64), nn.ReLU(), nn.Dropout(0.3),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(0.3),
             nn.Linear(64, 1),
         )
 
@@ -110,9 +126,12 @@ class FallCNN(nn.Module):
 
 # ── training ──────────────────────────────────────────────────────────────────
 
+
 def make_loaders(
-    X_tr: np.ndarray, y_tr: np.ndarray,
-    X_te: np.ndarray, y_te: np.ndarray,
+    X_tr: np.ndarray,
+    y_tr: np.ndarray,
+    X_te: np.ndarray,
+    y_te: np.ndarray,
 ) -> tuple[DataLoader, DataLoader]:
     # Conv1d expects (batch, channels, length) → permute (N,200,6) → (N,6,200)
     def to_tensor(X, y):
@@ -120,13 +139,20 @@ def make_loaders(
         yt = torch.tensor(y)
         return TensorDataset(xt, yt)
 
-    tr = DataLoader(to_tensor(X_tr, y_tr), batch_size=BATCH, shuffle=True,  num_workers=0)
-    te = DataLoader(to_tensor(X_te, y_te), batch_size=BATCH, shuffle=False, num_workers=0)
+    tr = DataLoader(
+        to_tensor(X_tr, y_tr), batch_size=BATCH, shuffle=True, num_workers=0
+    )
+    te = DataLoader(
+        to_tensor(X_te, y_te), batch_size=BATCH, shuffle=False, num_workers=0
+    )
     return tr, te
 
 
 def train_model(
-    tr_loader: DataLoader, te_loader: DataLoader, pos_weight: float, device: torch.device
+    tr_loader: DataLoader,
+    te_loader: DataLoader,
+    pos_weight: float,
+    device: torch.device,
 ) -> tuple[FallCNN, dict]:
     model = FallCNN().to(device)
     criterion = nn.BCEWithLogitsLoss(
@@ -138,7 +164,7 @@ def train_model(
     )
 
     history = {"train_loss": [], "val_loss": [], "train_acc": [], "val_acc": []}
-    best_val  = float("inf")
+    best_val = float("inf")
     best_state = None
     no_improve = 0
 
@@ -150,12 +176,12 @@ def train_model(
             xb, yb = xb.to(device), yb.to(device)
             optimizer.zero_grad()
             logits = model(xb)
-            loss   = criterion(logits, yb)
+            loss = criterion(logits, yb)
             loss.backward()
             optimizer.step()
-            t_loss    += loss.item() * len(yb)
+            t_loss += loss.item() * len(yb)
             t_correct += ((logits > 0) == yb.bool()).sum().item()
-            t_total   += len(yb)
+            t_total += len(yb)
 
         # ── validate ──
         model.eval()
@@ -163,10 +189,10 @@ def train_model(
         with torch.no_grad():
             for xb, yb in te_loader:
                 xb, yb = xb.to(device), yb.to(device)
-                logits  = model(xb)
-                v_loss    += criterion(logits, yb).item() * len(yb)
+                logits = model(xb)
+                v_loss += criterion(logits, yb).item() * len(yb)
                 v_correct += ((logits > 0) == yb.bool()).sum().item()
-                v_total   += len(yb)
+                v_total += len(yb)
 
         tl = t_loss / t_total
         vl = v_loss / v_total
@@ -179,18 +205,22 @@ def train_model(
 
         scheduler.step(vl)
         lr_now = optimizer.param_groups[0]["lr"]
-        print(f"Epoch {epoch:3d}/{EPOCHS} | "
-              f"loss {tl:.4f}  val_loss {vl:.4f} | "
-              f"acc {ta:.4f}  val_acc {va:.4f} | lr {lr_now:.6f}")
+        print(
+            f"Epoch {epoch:3d}/{EPOCHS} | "
+            f"loss {tl:.4f}  val_loss {vl:.4f} | "
+            f"acc {ta:.4f}  val_acc {va:.4f} | lr {lr_now:.6f}"
+        )
 
         if vl < best_val:
-            best_val   = vl
+            best_val = vl
             best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
             no_improve = 0
         else:
             no_improve += 1
             if no_improve >= ES_PAT:
-                print(f"  Early stop at epoch {epoch} (no val improvement for {ES_PAT} epochs)")
+                print(
+                    f"  Early stop at epoch {epoch} (no val improvement for {ES_PAT} epochs)"
+                )
                 break
 
     model.load_state_dict(best_state)
@@ -199,10 +229,15 @@ def train_model(
 
 # ── post-training report ──────────────────────────────────────────────────────
 
+
 def evaluate(model: FallCNN, te_loader: DataLoader, device: torch.device):
     from sklearn.metrics import (
-        classification_report, confusion_matrix,
-        roc_curve, auc, precision_recall_curve, average_precision_score,
+        auc,
+        average_precision_score,
+        classification_report,
+        confusion_matrix,
+        precision_recall_curve,
+        roc_curve,
     )
 
     model.eval()
@@ -215,8 +250,8 @@ def evaluate(model: FallCNN, te_loader: DataLoader, device: torch.device):
 
     logits = torch.cat(all_logits).numpy()
     labels = torch.cat(all_labels).numpy().astype(int)
-    probs  = 1 / (1 + np.exp(-logits))   # sigmoid
-    preds  = (probs >= 0.5).astype(int)
+    probs = 1 / (1 + np.exp(-logits))  # sigmoid
+    preds = (probs >= 0.5).astype(int)
 
     print("\n" + "=" * 60)
     print("  Test Set Classification Report")
@@ -230,8 +265,8 @@ def evaluate(model: FallCNN, te_loader: DataLoader, device: torch.device):
     fig, axes = plt.subplots(1, 2, figsize=(12, 4))
     fig.suptitle("Confusion Matrix", fontsize=13, fontweight="bold")
     for ax, norm, title in [
-        (axes[0], None,        "Raw counts"),
-        (axes[1], "true",      "Normalised (recall)"),
+        (axes[0], None, "Raw counts"),
+        (axes[1], "true", "Normalised (recall)"),
     ]:
         cm_disp = cm.astype(float) if norm == "true" else cm
         if norm == "true":
@@ -247,8 +282,15 @@ def evaluate(model: FallCNN, te_loader: DataLoader, device: torch.device):
         for r in range(2):
             for c in range(2):
                 val = f"{cm_disp[r,c]:.2f}" if norm else str(cm[r, c])
-                ax.text(c, r, val, ha="center", va="center", fontsize=12,
-                        color="white" if cm_disp[r, c] > cm_disp.max() / 2 else "black")
+                ax.text(
+                    c,
+                    r,
+                    val,
+                    ha="center",
+                    va="center",
+                    fontsize=12,
+                    color="white" if cm_disp[r, c] > cm_disp.max() / 2 else "black",
+                )
         plt.colorbar(im, ax=ax)
     plt.tight_layout()
     fig.savefig(PLOTS_DIR / "02_confusion_matrix.png", dpi=120)
@@ -295,13 +337,13 @@ def plot_history(history: dict) -> None:
     fig.suptitle("Training History", fontsize=13, fontweight="bold")
 
     axes[0].plot(epochs, history["train_loss"], label="Train", color="#e74c3c")
-    axes[0].plot(epochs, history["val_loss"],   label="Val",   color="#3498db")
+    axes[0].plot(epochs, history["val_loss"], label="Val", color="#3498db")
     axes[0].set_title("Loss")
     axes[0].set_xlabel("Epoch")
     axes[0].legend()
 
     axes[1].plot(epochs, history["train_acc"], label="Train", color="#e74c3c")
-    axes[1].plot(epochs, history["val_acc"],   label="Val",   color="#3498db")
+    axes[1].plot(epochs, history["val_acc"], label="Val", color="#3498db")
     axes[1].set_title("Accuracy")
     axes[1].set_xlabel("Epoch")
     axes[1].legend()
@@ -315,6 +357,7 @@ def plot_history(history: dict) -> None:
 
 # ── ONNX export ───────────────────────────────────────────────────────────────
 
+
 def export_onnx(model: FallCNN) -> None:
     import onnxruntime as ort
 
@@ -323,7 +366,9 @@ def export_onnx(model: FallCNN) -> None:
     model.eval().cpu()
     dummy = torch.zeros(1, 6, WINDOW)
     torch.onnx.export(
-        model, dummy, str(out_path),
+        model,
+        dummy,
+        str(out_path),
         input_names=["imu"],
         output_names=["logit"],
         dynamic_axes={"imu": {0: "batch"}, "logit": {0: "batch"}},
@@ -332,11 +377,12 @@ def export_onnx(model: FallCNN) -> None:
     print(f"\nExported: {out_path}  ({out_path.stat().st_size / 1024:.0f} KB)")
 
     sess = ort.InferenceSession(str(out_path), providers=["CPUExecutionProvider"])
-    out  = sess.run(None, {"imu": dummy.numpy()})[0]
+    out = sess.run(None, {"imu": dummy.numpy()})[0]
     print(f"ONNX verified: output shape {out.shape}  value: {out}")
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -354,20 +400,26 @@ def main() -> None:
 
     # 3. split
     X_tr, y_tr, X_te, y_te = subject_split(X, y, groups)
-    print(f"Train windows: {len(X_tr)}  (fall={y_tr.sum():.0f}, ADL={( y_tr==0).sum():.0f})")
-    print(f"Test  windows: {len(X_te)}  (fall={y_te.sum():.0f}, ADL={(y_te==0).sum():.0f})")
+    print(
+        f"Train windows: {len(X_tr)}  (fall={y_tr.sum():.0f}, ADL={( y_tr==0).sum():.0f})"
+    )
+    print(
+        f"Test  windows: {len(X_te)}  (fall={y_te.sum():.0f}, ADL={(y_te==0).sum():.0f})"
+    )
 
     # 4. normalise
     X_tr, X_te, mean, std = normalise(X_tr, X_te)
     MODELS_DIR.mkdir(exist_ok=True)
     np.savez(MODELS_DIR / "scaler.npz", mean=mean, std=std)
-    print(f"Scaler saved → models/scaler.npz  (mean={mean.round(4)}, std={std.round(4)})")
+    print(
+        f"Scaler saved → models/scaler.npz  (mean={mean.round(4)}, std={std.round(4)})"
+    )
 
     # 5. loaders
     tr_loader, te_loader = make_loaders(X_tr, y_tr, X_te, y_te)
 
     # 6. class weight (pos = fall)
-    n_adl  = (y_tr == 0).sum()
+    n_adl = (y_tr == 0).sum()
     n_fall = (y_tr == 1).sum()
     pos_weight = n_adl / n_fall
     print(f"\npos_weight = {pos_weight:.3f}  (ADL:{n_adl} / Fall:{n_fall})\n")
