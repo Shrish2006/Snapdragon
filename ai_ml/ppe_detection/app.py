@@ -1,11 +1,10 @@
 """SafeGuard PPE + Virtual Fencing — ONNX Runtime pipeline (Snapdragon ARM64 / NPU).
 
-OpenCV-free, ultralytics-free, torch-free. Runs on:
-  onnxruntime(-qnn) + numpy + Pillow + pygrabber (camera)
-so the same code runs on the dev machine (CPU) and the Snapdragon (Hexagon NPU).
+Runs on Linux (V4L2/OpenCV camera) and Windows (DirectShow/pygrabber camera).
+OpenCV-free in model inference; ultralytics-free; torch-free.
 
-Camera + inference live on one worker thread (keeps pygrabber's COM on one thread);
-the MJPEG endpoint just serves the latest annotated JPEG, decoupled from inference rate.
+Camera + inference live on one worker thread; the MJPEG endpoint serves the
+latest annotated JPEG, decoupled from inference rate.
 """
 
 import io
@@ -30,8 +29,8 @@ import drawing as dw
 
 try:
     from camera import Camera
-except ImportError:
-    Camera = None  # Linux / headless — camera unavailable
+except Exception:  # noqa: BLE001
+    Camera = None  # camera module or its deps unavailable — /stream disabled
 from config import setup_logging
 from inference import PoseDetector, PPEDetector, foot_point, point_in_polygon
 
@@ -121,9 +120,12 @@ def _worker() -> None:
         _stop.wait()
         return
 
-    import comtypes
+    import platform
+    _windows = platform.system() == "Windows"
+    if _windows:
+        import comtypes
+        comtypes.CoInitialize()
 
-    comtypes.CoInitialize()  # DirectShow/COM must be initialised on this thread
     cam = Camera(CAMERA_INDEX, swap_rb=CAMERA_SWAP_RB)
     fails = warmup = 0
     zone_hold_until = 0.0
@@ -175,9 +177,9 @@ def _worker() -> None:
             _latest_jpeg = _encode_jpeg(img)
         except Exception:  # noqa: BLE001
             logger.exception("worker error")
-
     cam.close()
-    comtypes.CoUninitialize()
+    if _windows:
+        comtypes.CoUninitialize()
 
 
 @asynccontextmanager

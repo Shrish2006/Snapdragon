@@ -8,6 +8,7 @@ dependencies = [
     "numpy",
     "onnxruntime",
     "pillow",
+    "opencv-python-headless",
 ]
 
 [dependency-groups]
@@ -16,7 +17,6 @@ gpu = [
     "torch",
     "torchvision",
     "ultralytics",
-    "opencv-python-headless",
     "huggingface-hub>=1.23.0",
     "pygrabber",
     "comtypes",
