@@ -46,9 +46,9 @@ def _batch(sequence: int, sent_at: datetime = T0) -> TelemetryBatch:
     )
 
 
-def _service() -> tuple[
-    IngestionService, _RecordingPublisher, InMemoryHelmetRepository
-]:
+def _service() -> (
+    tuple[IngestionService, _RecordingPublisher, InMemoryHelmetRepository]
+):
     repo = InMemoryHelmetRepository()
     publisher = _RecordingPublisher()
     # `clock=lambda: T0` pins "now" so clock-skew assertions are

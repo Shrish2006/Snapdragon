@@ -30,7 +30,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from eda import load_dataset, DATASET_DEFAULT  # noqa: E402
+from eda import DATASET_DEFAULT, load_dataset  # noqa: E402
 
 MODELS_DIR = HERE / "models"
 PLOTS_DIR = HERE / "training_plots"
@@ -232,12 +232,12 @@ def train_model(
 
 def evaluate(model: FallCNN, te_loader: DataLoader, device: torch.device):
     from sklearn.metrics import (
+        auc,
+        average_precision_score,
         classification_report,
         confusion_matrix,
-        roc_curve,
-        auc,
         precision_recall_curve,
-        average_precision_score,
+        roc_curve,
     )
 
     model.eval()

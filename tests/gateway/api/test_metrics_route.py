@@ -10,7 +10,6 @@ the same counters.
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
-
 from gateway.config import Settings, settings_for_tests
 from gateway.infrastructure.metrics.registry import (
     http_request_duration_seconds,

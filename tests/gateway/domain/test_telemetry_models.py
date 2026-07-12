@@ -3,8 +3,6 @@
 from datetime import datetime, timezone
 
 import pytest
-from pydantic import ValidationError
-
 from gateway.domain.telemetry.models import (
     AnalogGasReading,
     EnvironmentReading,
@@ -14,6 +12,7 @@ from gateway.domain.telemetry.models import (
     TelemetryBatch,
 )
 from gateway.domain.telemetry.sensors import SensorType
+from pydantic import ValidationError
 
 NOW = datetime(2026, 7, 12, tzinfo=timezone.utc)
 

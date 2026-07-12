@@ -6,11 +6,10 @@ import dataclasses
 
 import fakeredis.aioredis
 from fastapi.testclient import TestClient
-from redis.asyncio import Redis
-
 from gateway.config import Settings, settings_for_tests
 from gateway.infrastructure.bus.redis_streams import RedisStreamsEventBus
 from gateway.main import create_app
+from redis.asyncio import Redis
 
 
 def test_health_is_always_ok_even_before_lifespan_runs() -> None:

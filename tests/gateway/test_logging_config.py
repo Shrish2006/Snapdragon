@@ -17,9 +17,8 @@ import json
 import logging
 import sys
 
-import pytest
-
 import gateway.logging_config as logging_config
+import pytest
 from gateway.logging_config import _JSONFormatter, setup_logging
 
 

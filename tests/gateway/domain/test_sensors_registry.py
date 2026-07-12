@@ -11,9 +11,9 @@ def test_every_sensor_type_is_registered() -> None:
 def test_every_field_bounds_are_ordered() -> None:
     for spec in SENSOR_REGISTRY.values():
         for field_name, bounds in spec.fields.items():
-            assert bounds.minimum < bounds.maximum, (
-                f"{spec.sensor_type}.{field_name} has inverted bounds"
-            )
+            assert (
+                bounds.minimum < bounds.maximum
+            ), f"{spec.sensor_type}.{field_name} has inverted bounds"
 
 
 def test_every_spec_has_a_positive_sample_interval() -> None:

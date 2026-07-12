@@ -26,11 +26,10 @@ from PIL import Image
 from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import setup_logging
-
 import drawing as dw
 from camera import Camera
-from inference import PPEDetector, PoseDetector, foot_point, point_in_polygon
+from config import setup_logging
+from inference import PoseDetector, PPEDetector, foot_point, point_in_polygon
 
 setup_logging()
 logger = logging.getLogger(__name__)

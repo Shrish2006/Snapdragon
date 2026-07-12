@@ -60,8 +60,8 @@ from gateway.infrastructure.ml_clients.errors import (
     MLServiceResponseError,
     MLServiceUnavailableError,
 )
-from gateway.infrastructure.persistence.sqlite import SQLiteEventStore
 from gateway.infrastructure.persistence.postgres import PostgresEventStore
+from gateway.infrastructure.persistence.sqlite import SQLiteEventStore
 from gateway.logging_config import setup_logging
 
 logger = logging.getLogger("gateway.lifespan")

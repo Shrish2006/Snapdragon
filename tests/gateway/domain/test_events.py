@@ -1,8 +1,8 @@
 """Tests for `gateway.domain.events.models`."""
 
-import pytest
-from pydantic import ValidationError
+from datetime import datetime, timezone
 
+import pytest
 from gateway.domain.detection.models import MLServiceResult, PPEDetectionResult
 from gateway.domain.events.models import (
     EVENT_TYPE_REGISTRY,
@@ -15,7 +15,7 @@ from gateway.domain.events.models import (
 from gateway.domain.events.types import EventType, Severity
 from gateway.domain.telemetry.models import ImuReading, SensorReading, TelemetryBatch
 from gateway.domain.telemetry.validation import ValidationIssue
-from datetime import datetime, timezone
+from pydantic import ValidationError
 
 NOW = datetime(2026, 7, 12, tzinfo=timezone.utc)
 

@@ -1,10 +1,9 @@
 """Tests for `gateway.domain.common.identifiers`."""
 
 import pytest
-from pydantic import BaseModel, ValidationError
-
 from gateway.domain.common.errors import InvalidHelmetIdError
 from gateway.domain.common.identifiers import HelmetId, parse_helmet_id
+from pydantic import BaseModel, ValidationError
 
 
 class _Holder(BaseModel):

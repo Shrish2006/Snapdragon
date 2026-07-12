@@ -22,9 +22,9 @@ from datetime import timedelta
 
 import httpx
 
+from gateway.application.detection_service import PPEDetectionService
 from gateway.application.device_registry import DeviceRegistryService
 from gateway.application.device_state_manager import DeviceStateManager
-from gateway.application.detection_service import PPEDetectionService
 from gateway.application.ingestion_service import IngestionService
 from gateway.application.ports import EventBus, EventStore
 from gateway.application.service_health import ServiceHealthService
@@ -32,10 +32,10 @@ from gateway.application.subscription_service import SubscriptionManager
 from gateway.config import Settings
 from gateway.infrastructure.bus.in_memory import InMemoryEventBus
 from gateway.infrastructure.ml_clients.fall_client import FallDetectionHttpClient
-from gateway.infrastructure.ml_clients.ppe_client import PPEDetectionHttpClient
-from gateway.infrastructure.persistence.in_memory import InMemoryEventStore
 from gateway.infrastructure.ml_clients.mock_fall_client import MockFallDetectionClient
 from gateway.infrastructure.ml_clients.mock_ppe_client import MockPPEDetectionClient
+from gateway.infrastructure.ml_clients.ppe_client import PPEDetectionHttpClient
+from gateway.infrastructure.persistence.in_memory import InMemoryEventStore
 from gateway.infrastructure.registry.in_memory import InMemoryHelmetRepository
 from gateway.workers.pipeline import EventProcessor, ProcessingPipeline
 from gateway.workers.processors.persistence_processor import PersistenceProcessor
