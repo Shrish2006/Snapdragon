@@ -1,149 +1,112 @@
-# SafeGuard — AI-Powered Industrial Worker Safety System
+# SafeGuard
 
-> **Snapdragon Multiverse Hackathon 2026 · Bangalore**
+> AI-Powered Industrial Worker Safety System
+> Snapdragon Multiverse Hackathon 2026, Bangalore
 
----
+## Links
 
-## What is SafeGuard?
+[![Website](https://img.shields.io/badge/Website-snapdragon.upayan.dev-1565c0?style=flat-square)](https://snapdragon.upayan.dev)
+[![Docs](https://img.shields.io/badge/Docs-snapdragon.upayan.dev%2Fdocs-2e7d32?style=flat-square)](https://snapdragon.upayan.dev/docs)
+[![Figma](https://img.shields.io/badge/Design-Figma-6a1b9a?style=flat-square&logo=figma&logoColor=white)](https://www.figma.com/design/xhDEKBv90xZaSRzgfoD8gZ/SafeGuard?node-id=33-2)
 
-SafeGuard is a multi-device industrial safety system that combines a **sensor-equipped smart helmet** (Arduino UNO Q) with **computer vision** (Snapdragon AI PC) to provide real-time worker safety monitoring.
+## Overview
 
-The helmet continuously reads environmental and biometric data — gas levels, CO, temperature, heart rate, motion, and location — and runs **edge AI anomaly detection** locally. Simultaneously, a fixed camera feed runs **PPE detection** and **danger zone monitoring** on the Snapdragon AI PC. Both streams are fused into a unified risk score that triggers alerts on the mobile dashboard.
+SafeGuard is an AI-powered system that helps keep industrial workers safe in
+real time. It pairs a sensor-equipped smart helmet with a camera-based vision
+system to watch over each worker on site. The helmet tracks a worker's
+surroundings and wellbeing, while the vision system checks that safety gear is
+worn and spots dangerous situations. Both streams come together into a single,
+easy-to-read measure of risk. When something goes wrong, supervisors are alerted
+instantly on a live dashboard and the worker's helmet can respond on the spot.
+The goal is simple: catch hazards early and keep people safe.
 
----
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Edge["Edge devices"]
+        Helmet["Smart Helmet<br/>(Arduino UNO Q)<br/>IMU · gas · CO · temp · sound"]
+        Cam["USB Camera<br/>(fixed mount)"]
+    end
+
+    subgraph AI["AI / CV services"]
+        PPE["PPE Detection<br/>(YOLOv8 pose)"]
+        Fall["Fall Detection"]
+    end
+
+    subgraph Core["Gateway (FastAPI)"]
+        Ingest["Telemetry ingestion"]
+        Fusion["Sensor fusion<br/>+ risk scoring"]
+        Events["Event bus"]
+    end
+
+    Dash["Dashboard<br/>(Next.js)"]
+
+    Helmet -->|"MQTT telemetry<br/>safeguard/telemetry/{id}"| Ingest
+    Cam --> PPE
+    Cam --> Fall
+    PPE -->|detections| Fusion
+    Fall -->|detections| Fusion
+    Ingest --> Fusion
+    Fusion --> Events
+    Events -->|"WebSocket / REST"| Dash
+    Fusion -.->|"MQTT command<br/>buzzer alert"| Helmet
+
+    classDef edge fill:#e8f5e9,stroke:#2e7d32,color:#0d1b2a;
+    classDef ai fill:#f3e5f5,stroke:#6a1b9a,color:#0d1b2a;
+    classDef core fill:#fff3e0,stroke:#e65100,color:#0d1b2a;
+    class Helmet,Cam edge;
+    class PPE,Fall ai;
+    class Ingest,Fusion,Events core;
+```
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Helmet firmware | Arduino UNO Q, MQTT |
+| Vision / AI | YOLOv8 pose (ONNX), FastAPI |
+| Gateway | Python, FastAPI, Mosquitto, Redis, PostgreSQL |
+| Dashboard | Next.js |
+| Infra | Docker, Kubernetes, GitHub Actions (GHCR) |
 
 ## Team
 
-| # | Name | Email |
-|---|------|-------|
-| 1 | Shrish Makwana | shrish.hmakwana2024@vitstudent.ac.in |
-| 2 | Ankit Agrawal | Ankit.agrawal2024@vitstudent.ac.in |
-| 3 | Naman Chauhan | Naman.chauhan2024@vitstudent.ac.in |
-| 4 | Upayan Mazumder | upayan.mazumder2024@vitstudent.ac.in |
-| 5 | Chitrita Gahlot | chitrita.gahlot2024@vitstudent.ac.in |
-
----
-
-## System Architecture
-
-```
-[Arduino UNO Q Helmet]
-        │
-        │  sensor readings via WiFi/BLE
-        ▼
-[Snapdragon AI PC] ◄── [USB Camera Feed]
-        │                    │
-        │                    └── YOLO PPE Detection
-        │
-        ├── Sensor Fusion Engine
-        ├── Risk Scoring
-        │
-        ▼
-[Mobile Dashboard]
-   real-time alerts + worker status
-```
-
----
-
-## Hardware Requirements
-
-| Component | Purpose |
-|-----------|---------|
-| Snapdragon X Series Copilot+ PC | Edge AI inference + fusion engine |
-| Arduino UNO Q | Helmet microcontroller |
-| Qualcomm AI Cloud 100 | Cloud offload (optional) |
-| Android mobile device | Alert dashboard |
-| USB camera (fixed mount) | PPE + zone detection |
-| MPU-6050 | Accelerometer + gyroscope (motion) |
-| MQ-2 | Gas sensor (LPG, smoke, propane) |
-| MQ-7 | Carbon monoxide sensor |
-| DHT-22 | Temperature + humidity |
-| MLX90614 | IR body temperature |
-| MAX30102 | Heart rate + SpO2 |
-| Sound sensor | Noise level detection |
-| FSR | Helmet fit / pressure |
-| Flex sensor | Head tilt detection |
-| GPS module | Worker location |
-| Buzzer | On-helmet alert |
-
----
-
-## Quickstart (Docker Compose)
-
-Requires Docker with Compose v2.
-
-```bash
-git clone https://github.com/Shrish2006/Snapdragon.git
-cd Snapdragon
-cp .env.example .env          # optional — sensible defaults apply without it
-docker compose up --build
-```
-
-| Service | URL | Endpoints |
-|---------|-----|-----------|
-| app (dashboard) | https://snapdragon.upayan.dev | Next.js UI, `/api/health` |
-| gateway | https://api-snapdragon.upayan.dev | `/v1/telemetry` (HTTP + MQTT), `/v1/helmets`, `/v1/detections/ppe`, `/v1/status`, `/v1/events`, `/v1/ws` (WebSocket), `/health`, `/ready`, `/metrics` |
-| mqtt (Mosquitto) | `138.201.157.147:31883` | Helmet telemetry broker — connect Arduino here |
-| ppe_detection | http://localhost:8001 (local only) | `/health`, `/ready`, `/detect`, `/stream` |
-| fall_detection | http://localhost:8002 (local only) | `/health` |
-
-**For electronics:** point `MQTT_HOST` to `138.201.157.147` and `MQTT_PORT` to `31883`.
-Broker allows anonymous connections — no username/password needed. See
-`helmet/README.md` for full firmware setup.
-
-The PPE service runs CPU-only by default and downloads its model from HuggingFace on
-first start. GPU + camera are opt-in — see the commented block in `docker-compose.yml`.
-
-### Hardware / models (optional)
-
-- Flash the helmet firmware: open `helmet/helmet_firmware.ino` in the Arduino IDE,
-  select **Arduino UNO Q**, and upload. See `helmet/README.md` for library
-  requirements and configuration (`HELMET_ID`, `MQTT_HOST`, WiFi credentials).
-- Helmets connect to the Mosquitto broker at port 1883 and publish telemetry to
-  `safeguard/telemetry/{helmet_id}`. The gateway subscribes and ingests automatically.
-- Model weights are pulled automatically at runtime; `models/download_models.sh` is a
-  placeholder for pre-fetching them.
-
----
-
-## Deployment
-
-Full instructions: [docs/deployment.md](docs/deployment.md). Summary:
-
-- **Images** are published to GHCR by CI:
-  `ghcr.io/shrish2006/snapdragon/{app,gateway,ppe-detection,fall-detection}`.
-- **Kubernetes:** `kubectl apply -k k8s/` deploys the whole stack to the `safeguard`
-  namespace behind an Ingress at `snapdragon.upayan.dev` (app),
-  `api-snapdragon.upayan.dev` (gateway), `ppe-snapdragon.upayan.dev`, and
-  `fall-snapdragon.upayan.dev`.
-- **Versioning:** push a `vX.Y.Z` tag to publish `X.Y.Z` / `X.Y` / `X` / `latest` images.
-
----
-
-## Project Structure
-
-```
-Snapdragon/
-├── app/                       # Next.js dashboard (standalone build, Dockerfile)
-│   └── src/app/api/health/    # health endpoint for container probes
-├── gateway/                   # FastAPI gateway (Dockerfile)
-│   └── src/gateway/           # domain / application / infrastructure / api / workers layers
-├── ai_ml/
-│   ├── config.py              # shared JSON logging setup
-│   ├── ppe_detection/         # FastAPI + YOLO PPE detection (Dockerfile)
-│   └── fall_detection/        # FastAPI fall detection service (Dockerfile)
-├── k8s/                       # Kubernetes manifests (kustomize)
-├── .github/workflows/         # CI (lint/test/build) + CD (GHCR publish)
-├── helmet/                    # Arduino UNO Q firmware
-├── models/                    # model download helper
-├── tests/                     # test suite (wired into CI)
-├── docs/                      # documentation
-├── docker-compose.yml         # local / single-host stack
-└── compose.override.yml       # dev hot-reload overrides
-```
-
----
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Shrish2006">
+        <img src="https://avatars.githubusercontent.com/u/105660739?v=4" width="80" height="80" alt="Shrish Makwana"><br/>
+        <sub><b>Shrish Makwana</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/ankitagrawal282">
+        <img src="https://avatars.githubusercontent.com/u/182234554?v=4" width="80" height="80" alt="Ankit Agrawal"><br/>
+        <sub><b>Ankit Agrawal</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/namanch6">
+        <img src="https://avatars.githubusercontent.com/u/255293838?v=4" width="80" height="80" alt="Naman Chauhan"><br/>
+        <sub><b>Naman Chauhan</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/upayanmazumder">
+        <img src="https://avatars.githubusercontent.com/u/143063269?v=4" width="80" height="80" alt="Upayan Mazumder"><br/>
+        <sub><b>Upayan Mazumder</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/Cheetos-gif">
+        <img src="https://avatars.githubusercontent.com/u/182199486?v=4" width="80" height="80" alt="Chitrita Gahlot"><br/>
+        <sub><b>Chitrita Gahlot</b></sub>
+      </a>
+    </td>
+  </tr>
+</table>
 
 ## License
 
-MIT License — see [LICENSE](LICENSE)
+Released under the [MIT License](LICENSE).
