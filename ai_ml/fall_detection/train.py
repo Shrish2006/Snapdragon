@@ -29,7 +29,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from eda import load_dataset, DATASET_DEFAULT
+from eda import load_dataset, DATASET_DEFAULT  # noqa: E402
 
 MODELS_DIR = HERE / "models"
 PLOTS_DIR  = HERE / "training_plots"
@@ -237,9 +237,12 @@ def evaluate(model: FallCNN, te_loader: DataLoader, device: torch.device):
         if norm == "true":
             cm_disp = cm_disp / cm_disp.sum(axis=1, keepdims=True)
         im = ax.imshow(cm_disp, cmap="Blues")
-        ax.set_xticks([0, 1]); ax.set_yticks([0, 1])
-        ax.set_xticklabels(["ADL", "Fall"]); ax.set_yticklabels(["ADL", "Fall"])
-        ax.set_xlabel("Predicted"); ax.set_ylabel("True")
+        ax.set_xticks([0, 1])
+        ax.set_yticks([0, 1])
+        ax.set_xticklabels(["ADL", "Fall"])
+        ax.set_yticklabels(["ADL", "Fall"])
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("True")
         ax.set_title(title)
         for r in range(2):
             for c in range(2):
@@ -257,7 +260,8 @@ def evaluate(model: FallCNN, te_loader: DataLoader, device: torch.device):
     fig, ax = plt.subplots(figsize=(6, 5))
     ax.plot(fpr, tpr, color="#e74c3c", lw=2, label=f"AUC = {roc_auc:.4f}")
     ax.plot([0, 1], [0, 1], "k--", lw=1)
-    ax.set_xlabel("False Positive Rate"); ax.set_ylabel("True Positive Rate")
+    ax.set_xlabel("False Positive Rate")
+    ax.set_ylabel("True Positive Rate")
     ax.set_title("ROC Curve", fontsize=13)
     ax.legend(loc="lower right")
     plt.tight_layout()
@@ -269,7 +273,8 @@ def evaluate(model: FallCNN, te_loader: DataLoader, device: torch.device):
     ap = average_precision_score(labels, probs)
     fig, ax = plt.subplots(figsize=(6, 5))
     ax.plot(rec, prec, color="#3498db", lw=2, label=f"AP = {ap:.4f}")
-    ax.set_xlabel("Recall"); ax.set_ylabel("Precision")
+    ax.set_xlabel("Recall")
+    ax.set_ylabel("Precision")
     ax.set_title("Precision-Recall Curve", fontsize=13)
     ax.legend(loc="upper right")
     plt.tight_layout()
@@ -291,17 +296,21 @@ def plot_history(history: dict) -> None:
 
     axes[0].plot(epochs, history["train_loss"], label="Train", color="#e74c3c")
     axes[0].plot(epochs, history["val_loss"],   label="Val",   color="#3498db")
-    axes[0].set_title("Loss"); axes[0].set_xlabel("Epoch"); axes[0].legend()
+    axes[0].set_title("Loss")
+    axes[0].set_xlabel("Epoch")
+    axes[0].legend()
 
     axes[1].plot(epochs, history["train_acc"], label="Train", color="#e74c3c")
     axes[1].plot(epochs, history["val_acc"],   label="Val",   color="#3498db")
-    axes[1].set_title("Accuracy"); axes[1].set_xlabel("Epoch"); axes[1].legend()
+    axes[1].set_title("Accuracy")
+    axes[1].set_xlabel("Epoch")
+    axes[1].legend()
     axes[1].set_ylim(0, 1)
 
     plt.tight_layout()
     fig.savefig(PLOTS_DIR / "01_loss_accuracy.png", dpi=120)
     plt.close(fig)
-    print(f"  saved 01_loss_accuracy.png")
+    print("  saved 01_loss_accuracy.png")
 
 
 # ── ONNX export ───────────────────────────────────────────────────────────────

@@ -204,7 +204,6 @@ def plot_channel_stats(records: list[dict], out: Path) -> None:
     adl_arr  = np.array(adl_means)   # (N_adl, 6)
 
     x = np.arange(6)
-    width = 0.35
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     fig.suptitle("Per-Channel Statistics — Fall vs ADL (mean of recording means)",
@@ -216,8 +215,8 @@ def plot_channel_stats(records: list[dict], out: Path) -> None:
     ]:
         means = arr.mean(axis=0)
         stds  = arr.std(axis=0)
-        bars = ax.bar(x, means, width=0.6, yerr=stds, capsize=4,
-                      color=color, alpha=0.8, label=label)
+        ax.bar(x, means, width=0.6, yerr=stds, capsize=4,
+               color=color, alpha=0.8, label=label)
         ax.set_xticks(x)
         ax.set_xticklabels(COL_NAMES, rotation=30, ha="right", fontsize=9)
         ax.set_title(f"{label} (n={len(arr)})", fontsize=11)
@@ -286,7 +285,7 @@ def print_report(records: list[dict]) -> None:
         for f in nan_files[:5]:
             print(f"    >> {f}")
     print()
-    print(f"  Signal length (samples @ 200 Hz)")
+    print("  Signal length (samples @ 200 Hz)")
     print(f"    min  : {min(lengths)}  ({min(lengths)/200:.1f}s)")
     print(f"    max  : {max(lengths)}  ({max(lengths)/200:.1f}s)")
     print(f"    mean : {np.mean(lengths):.0f}  ({np.mean(lengths)/200:.1f}s)")
