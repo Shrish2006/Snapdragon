@@ -26,9 +26,10 @@ spec:
           operator: Equal
           value: "true"
           effect: NoSchedule
-      # Makes the emptyDir cache writable by the image's non-root user (uid 1000).
+      # uid 1000 (appuser) needs GID 44 (video) to open /dev/video* from usbipd.
       securityContext:
         fsGroup: 1000
+        supplementalGroups: [44]
       containers:
         - name: ppe-detection
           image: ghcr.io/shrish2006/snapdragon/ppe-detection:latest
