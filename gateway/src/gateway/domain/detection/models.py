@@ -50,6 +50,20 @@ class PPEDetectionResult(BaseModel):
     detections: list[PPEDetectionItem]
 
 
+class FallDetectionResult(BaseModel):
+    """Response from `POST /ingest` on the fall-detection service.
+
+    `fall_detected` reflects the debounce decision made by
+    `FallDetectionProcessor` in the gateway — the service itself only
+    returns a raw probability; the gateway decides when to fire.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    fall_detected: bool
+    probability: Annotated[float, Field(ge=0.0, le=1.0)]
+
+
 class MLServiceResult(BaseModel):
     """Generic envelope for any ML service without a typed contract yet.
 
