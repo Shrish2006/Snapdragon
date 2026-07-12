@@ -42,14 +42,21 @@ Edit the **CONFIG** block at the top of `helmet_firmware.ino`:
 static const char* HELMET_ID = "helmet-01";   // unique per device
 static const char* WIFI_SSID = "YOUR_SSID";
 static const char* WIFI_PASS = "YOUR_WIFI_PASSWORD";
-static const char* MQTT_HOST = "192.168.1.100";  // broker IP or hostname
-static const int   MQTT_PORT = 1883;              // 8883 for TLS
+static const char* MQTT_HOST = "192.168.1.100";  // ← set from table below
+static const int   MQTT_PORT = 1883;
 static const char* MQTT_USER = "helmet-01";       // must equal HELMET_ID in prod
-static const char* MQTT_PASS = "REPLACE_ME";
+static const char* MQTT_PASS = "";                // blank if allow_anonymous
 ```
 
-`HELMET_ID` must be unique across all helmets and follow the pattern
-`[A-Za-z0-9][A-Za-z0-9_-]{0,63}` — the same constraint the gateway enforces.
+**What to set `MQTT_HOST` to:**
+
+| You are running the stack on… | `MQTT_HOST` | Notes |
+|-------------------------------|-------------|-------|
+| **Docker Compose, same machine** | `localhost` | Broker port 1883 is forwarded to your host |
+| **Docker Compose, Arduino on LAN** | Your PC's LAN IP | e.g. `192.168.1.42` — find with `ipconfig` (Win) / `hostname -I` (Linux) / `ifconfig` (Mac) |
+| **Kubernetes, device on cluster network** | `mosquitto.safeguard.svc.cluster.local` | Internal ClusterIP; needs a pod on the cluster or port-forward |
+| **Kubernetes, device on physical LAN** | The NodePort/LoadBalancer external IP | `kubectl get svc mosquitto -n safeguard` to find it |
+
 
 ---
 

@@ -55,6 +55,15 @@ docker compose up --build
 Wait for all services to reach healthy status. The Mosquitto broker listens on
 `localhost:1883` and the gateway on `localhost:8080`.
 
+**MQTT broker address by scenario:**
+
+| Scenario | MQTT host | Port |
+|----------|-----------|------|
+| `mosquitto_pub` / scripts on same machine | `localhost` | 1883 |
+| Arduino on same LAN as Docker host | Host PC's LAN IP (e.g. `192.168.1.42`) | 1883 |
+| Inside Kubernetes cluster | `mosquitto.safeguard.svc.cluster.local` | 1883 |
+| K8s, external device | LoadBalancer/NodePort external IP | 1883 |
+
 ### 2. Send a telemetry batch
 
 Copy-paste this into a terminal once the stack is up. It publishes one
