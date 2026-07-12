@@ -32,10 +32,10 @@ from gateway.infrastructure.ml_clients.errors import (
 
 logger = logging.getLogger(__name__)
 
-WINDOW    = 200   # samples — must match training window
-STRIDE    = 50    # run inference every N new samples (75% overlap)
+WINDOW = 200  # samples — must match training window
+STRIDE = 50  # run inference every N new samples (75% overlap)
 THRESHOLD = 0.70  # sigmoid probability above which a window is "fall"
-DEBOUNCE  = 2     # consecutive windows required before firing an alert
+DEBOUNCE = 2  # consecutive windows required before firing an alert
 
 
 class FallDetectionProcessor:
@@ -46,7 +46,7 @@ class FallDetectionProcessor:
         client: FallDetectionClient,
         event_publisher: EventPublisher,
     ) -> None:
-        self._client    = client
+        self._client = client
         self._publisher = event_publisher
 
         # per-helmet circular buffers: helmet_id → deque of [ax, ay, az, gx, gy, gz]
@@ -54,11 +54,11 @@ class FallDetectionProcessor:
             lambda: deque(maxlen=WINDOW)
         )
         # how many new samples have arrived since the last inference run
-        self._new_since: dict[str, int]  = defaultdict(int)
+        self._new_since: dict[str, int] = defaultdict(int)
         # how many consecutive windows have exceeded THRESHOLD
-        self._consec:    dict[str, int]  = defaultdict(int)
+        self._consec: dict[str, int] = defaultdict(int)
         # latch: True while a fall episode is active (prevents duplicate alerts)
-        self._in_fall:   dict[str, bool] = defaultdict(bool)
+        self._in_fall: dict[str, bool] = defaultdict(bool)
 
     async def process(self, event: DomainEvent[Any]) -> None:
         if event.type != EventType.TELEMETRY_RECEIVED:
@@ -68,9 +68,7 @@ class FallDetectionProcessor:
         helmet_id = str(batch.helmet_id)
 
         imu_readings = [
-            r.value
-            for r in batch.readings
-            if r.sensor_type == SensorType.IMU
+            r.value for r in batch.readings if r.sensor_type == SensorType.IMU
         ]
         if not imu_readings:
             return
@@ -78,8 +76,16 @@ class FallDetectionProcessor:
         buf = self._buf[helmet_id]
         for r in imu_readings:
             # accel_magnitude_g is excluded — the model uses 6 channels only
-            buf.append([r.accel_x_g, r.accel_y_g, r.accel_z_g,
-                        r.gyro_x_dps, r.gyro_y_dps, r.gyro_z_dps])
+            buf.append(
+                [
+                    r.accel_x_g,
+                    r.accel_y_g,
+                    r.accel_z_g,
+                    r.gyro_x_dps,
+                    r.gyro_y_dps,
+                    r.gyro_z_dps,
+                ]
+            )
         self._new_since[helmet_id] += len(imu_readings)
 
         # belt not full yet — not enough history to classify
@@ -110,11 +116,12 @@ class FallDetectionProcessor:
         if result.probability >= THRESHOLD:
             self._consec[helmet_id] += 1
             if self._consec[helmet_id] >= DEBOUNCE and not self._in_fall[helmet_id]:
-                self._in_fall[helmet_id]  = True
-                self._consec[helmet_id]   = 0
+                self._in_fall[helmet_id] = True
+                self._consec[helmet_id] = 0
                 logger.warning(
                     "FALL DETECTED  helmet=%s  prob=%.3f",
-                    helmet_id, result.probability,
+                    helmet_id,
+                    result.probability,
                 )
                 await self._publisher.publish(
                     MLResultEvent(

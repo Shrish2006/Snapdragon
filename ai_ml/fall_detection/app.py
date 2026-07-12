@@ -3,23 +3,22 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
+from fall_detection import MODEL_PATH, SCALER_PATH, FallInference
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-
-from fall_detection import SCALER_PATH, MODEL_PATH, FallInference
 
 logger = logging.getLogger(__name__)
 
 
 class IngestRequest(BaseModel):
-    helmet_id: str             = Field(min_length=1, max_length=64)
-    window:    list[list[float]] = Field(min_length=1)
+    helmet_id: str = Field(min_length=1, max_length=64)
+    window: list[list[float]] = Field(min_length=1)
     """200 × 6 rows: [accel_x_g, accel_y_g, accel_z_g, gyro_x_dps, gyro_y_dps, gyro_z_dps]"""
 
 
 class IngestResponse(BaseModel):
     fall_detected: bool
-    probability:   float
+    probability: float
 
 
 @asynccontextmanager
