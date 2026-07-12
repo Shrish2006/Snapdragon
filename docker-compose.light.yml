@@ -58,6 +58,7 @@ services:
       PYTHONPATH: /app/src
       MOCK_ML: "true"
       PPE_URL: http://localhost:8001
+      TELEMETRY_MAX_CLOCK_SKEW_SECONDS: "604800"
       FALL_URL: http://localhost:8002
       EVENT_BUFFER: ${EVENT_BUFFER:-200}
       EVENT_BUS_BACKEND: redis
