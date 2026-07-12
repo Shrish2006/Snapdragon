@@ -3,11 +3,14 @@
 Runs on Linux (V4L2/OpenCV camera) and Windows (DirectShow/pygrabber camera).
 OpenCV-free in model inference; ultralytics-free; torch-free.
 
-Camera + inference live on one worker thread; the MJPEG endpoint serves the
-latest annotated JPEG, decoupled from inference rate.
+Two-thread design:
+  _capture_thread  — owns the Camera; grabs frames as fast as V4L2 delivers them
+                     and writes the latest into _latest_frame (1-slot buffer).
+  _worker_thread   — reads _latest_frame, runs inference, draws, encodes JPEG,
+                     publishes to _latest_jpeg for the MJPEG HTTP endpoint.
+This decoupling ensures inference latency never causes stale-frame accumulation.
 """
 
-import io
 import json
 import logging
 import os
@@ -21,7 +24,7 @@ from typing import AsyncGenerator
 import numpy as np
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
-from PIL import Image
+import cv2
 from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -76,8 +79,11 @@ _roi_lock = threading.Lock()
 ROI_FILE = HERE / "roi.json"
 
 # ── stream state ──
-_latest_jpeg: bytes | None = None
+_latest_frame: np.ndarray | None = None   # RGB; written by capture thread
+_frame_lock = threading.Lock()
+_latest_jpeg: bytes | None = None         # written by inference thread
 _stop = threading.Event()
+_capture_thread: threading.Thread | None = None
 _worker_thread: threading.Thread | None = None
 
 
@@ -102,18 +108,29 @@ def _save_roi(pts: list) -> None:
         logger.exception("failed to save roi.json")
 
 
-def _encode_jpeg(img: Image.Image) -> bytes:
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=STREAM_QUALITY)
-    return buf.getvalue()
+def _encode_jpeg(frame_rgb: np.ndarray) -> bytes:
+    """Encode an RGB uint8 ndarray to JPEG bytes via cv2 (5-10× faster than PIL)."""
+    ok, buf = cv2.imencode(
+        ".jpg", frame_rgb[:, :, ::-1],  # RGB→BGR for cv2
+        [cv2.IMWRITE_JPEG_QUALITY, STREAM_QUALITY],
+    )
+    return buf.tobytes() if ok else b""
 
 
-_NO_SIGNAL_JPEG = _encode_jpeg(dw.no_signal_image())
+def _make_no_signal_jpeg() -> bytes:
+    img_pil = dw.no_signal_image()
+    arr = np.array(img_pil)
+    return _encode_jpeg(arr)
 
 
-def _worker() -> None:
-    """Owns the camera; grabs -> infers -> draws -> encodes -> publishes latest JPEG."""
-    global _latest_jpeg
+_NO_SIGNAL_JPEG = _make_no_signal_jpeg()
+
+
+def _capture() -> None:
+    """Camera-owning thread: grabs frames as fast as V4L2 delivers and
+    writes the latest RGB ndarray into _latest_frame (1-slot buffer).
+    Decoupled from inference so slow YOLO runs never stall the grab loop."""
+    global _latest_frame
 
     if Camera is None:
         logger.warning("Camera not available — stream disabled, /detect still works")
@@ -128,23 +145,48 @@ def _worker() -> None:
 
     cam = Camera(CAMERA_INDEX, swap_rb=CAMERA_SWAP_RB)
     fails = warmup = 0
-    zone_hold_until = 0.0
 
     while not _stop.is_set():
         frame = cam.read()
         if frame is None:
             fails += 1
             if fails >= FAILURE_LIMIT:
-                _latest_jpeg = _NO_SIGNAL_JPEG
+                with _frame_lock:
+                    _latest_frame = None
                 logger.warning("camera lost, reopening…")
                 cam.reopen()
                 fails = 0
-            time.sleep(0.1)
+            time.sleep(0.05)
             continue
         fails = 0
-        if warmup < 2:  # first frames are often garbage
+        if warmup < 3:  # discard first 3 frames — V4L2 ring-buffer flush
             warmup += 1
             continue
+        with _frame_lock:
+            _latest_frame = frame  # inference thread picks this up
+
+    cam.close()
+    if _windows:
+        import comtypes
+        comtypes.CoUninitialize()
+
+
+def _worker() -> None:
+    """Inference thread: reads latest frame, runs YOLO×2, draws overlays,
+    encodes JPEG, publishes to _latest_jpeg for the MJPEG endpoint."""
+    global _latest_jpeg
+
+    zone_hold_until = 0.0
+    last_frame_id = id(None)  # skip if no new frame since last iteration
+
+    while not _stop.is_set():
+        with _frame_lock:
+            frame = _latest_frame
+
+        if frame is None or id(frame) == last_frame_id:
+            time.sleep(0.005)
+            continue
+        last_frame_id = id(frame)
 
         try:
             persons = _pose.detect(frame)
@@ -168,29 +210,30 @@ def _worker() -> None:
                 logger.warning("zone_triggered: foot in restricted area")
             show_red = now < zone_hold_until
 
-            img = Image.fromarray(frame)
+            from PIL import Image as _Image
+            img = _Image.fromarray(frame)
             img = dw.draw_zone(img, poly, show_red)
             if DEBUG_POSE:
                 dw.draw_skeleton(img, persons)
             dw.draw_feet(img, feet)
             dw.draw_ppe(img, dets)
-            _latest_jpeg = _encode_jpeg(img)
+            drawn = np.array(img)
+            _latest_jpeg = _encode_jpeg(drawn)
         except Exception:  # noqa: BLE001
             logger.exception("worker error")
-    cam.close()
-    if _windows:
-        comtypes.CoUninitialize()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
-    global _pose, _ppe, _ready, _worker_thread, _latest_jpeg
+    global _pose, _ppe, _ready, _capture_thread, _worker_thread, _latest_jpeg
     _load_roi()
     _pose = PoseDetector(POSE_MODEL)
     _ppe = PPEDetector(PPE_MODEL, PPE_NAMES)
     _latest_jpeg = _NO_SIGNAL_JPEG
     _stop.clear()
-    _worker_thread = threading.Thread(target=_worker, daemon=True)
+    _capture_thread = threading.Thread(target=_capture, daemon=True, name="cam-grab")
+    _worker_thread = threading.Thread(target=_worker, daemon=True, name="inference")
+    _capture_thread.start()
     _worker_thread.start()
     _ready = True
     yield

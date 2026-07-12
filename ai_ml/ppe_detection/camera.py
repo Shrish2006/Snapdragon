@@ -52,17 +52,33 @@ class Camera:
     def _open_linux(self) -> None:
         import cv2
 
-        cap = cv2.VideoCapture(self.index)
+        # Explicitly select the V4L2 backend — avoids GStreamer fallback on WSL2.
+        cap = cv2.VideoCapture(self.index, cv2.CAP_V4L2)
+        # Force MJPEG: Logitech C270 (and most USB webcams) default to YUYV over
+        # usbipd/WSL2.  MJPEG avoids the YUYV→BGR chroma mangling that produces
+        # a solid-green frame, and halves USB bandwidth vs raw YUYV at 640×480.
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        cap.set(cv2.CAP_PROP_FPS, 30)
+        # Keep only 1 frame in the V4L2 kernel ring-buffer.  Without this the
+        # default 4-frame buffer accumulates stale frames during inference,
+        # adding 100–400 ms of extra latency per inference cycle.
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         if not cap.isOpened():
             logger.error("cv2: camera %d could not be opened", self.index)
             return
-        # Request a reasonable default resolution; camera may clamp it.
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         self._cap = cap
-        logger.info("cv2: camera %d opened (%dx%d)", self.index,
-                    int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                    int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        actual_fmt = int(cap.get(cv2.CAP_PROP_FOURCC))
+        fmt_str = "".join(chr((actual_fmt >> (8 * i)) & 0xFF) for i in range(4))
+        logger.info(
+            "cv2: camera %d opened (%dx%d @ %.0ffps fmt=%s)",
+            self.index,
+            int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+            int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+            cap.get(cv2.CAP_PROP_FPS),
+            fmt_str,
+        )
 
     def _read_linux(self) -> np.ndarray | None:
         if self._cap is None:
