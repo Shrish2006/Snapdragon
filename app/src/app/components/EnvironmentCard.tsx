@@ -2,20 +2,24 @@
 
 import { tokens, fontSora } from "./tokens";
 
-interface Metric {
-  label: string;
-  color: string;
-  points: string; // SVG polyline points, placeholder data
+interface EnvironmentCardProps {
+  gasPoints?: string;
+  coPoints?: string;
+  humidityPoints?: string;
+  lastUpdated?: string;
 }
 
-const metrics: Metric[] = [
-  { label: "Gas (MQ2)", color: tokens.gasColor, points: "0,45 15,10 30,50 45,5 60,40 75,15 100,20" },
-  { label: "CO2 (MQ7)", color: tokens.co2Color, points: "0,52 15,38 30,40 45,25 60,30 75,32 100,22" },
-  { label: "Humidity", color: tokens.humidityColor, points: "0,48 15,44 30,30 45,32 60,18 75,22 100,15" },
-];
+function buildMetrics(gasPoints: string, coPoints: string, humidityPoints: string) {
+  return [
+    { label: "Gas (MQ2)", color: tokens.gasColor, points: gasPoints },
+    { label: "CO (MQ7)", color: tokens.co2Color, points: coPoints },
+    { label: "Humidity", color: tokens.humidityColor, points: humidityPoints },
+  ];
+}
 
 // Matches Figma: Rectangle 4, 366x249, bg #1C1F24, radius 10, grid-line texture
-export default function EnvironmentCard() {
+export default function EnvironmentCard({ gasPoints = "", coPoints = "", humidityPoints = "", lastUpdated = "—" }: EnvironmentCardProps) {
+  const metrics = buildMetrics(gasPoints, coPoints, humidityPoints);
   return (
     <div
       className="rounded-[10px] p-5 w-full h-full flex flex-col transition-all duration-200 ease-out env-card"
@@ -37,7 +41,7 @@ export default function EnvironmentCard() {
             Environment
           </p>
           <p style={{ fontFamily: fontSora, fontWeight: 600, fontSize: 10, lineHeight: "13px", color: tokens.textTertiary }}>
-            Last updated 30 sec ago
+            Last updated {lastUpdated}
           </p>
         </div>
       </div>

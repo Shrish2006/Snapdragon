@@ -1,11 +1,10 @@
 "use client";
 
 import { tokens, statusColor, SensorStatus, fontSora } from "./tokens";
-
-type MotionState = "upright" | "moving" | "fall";
+import type { MotionState } from "@/lib/sensors/normalize";
 
 interface MotionStatusCardProps {
-  state?: MotionState;
+  state?: MotionState | null;
   lastUpdated?: string;
 }
 
@@ -14,13 +13,14 @@ const stateConfig: Record<MotionState, { label: string; status: SensorStatus }> 
   moving: { label: "Moving", status: "warning" },
   fall: { label: "Fall detected", status: "danger" },
 };
+const UNKNOWN_STATE = { label: "No data", status: "unknown" as SensorStatus };
 
 // Matches Figma: Group 24, 256x112, bg #1C1F24, radius 10
 export default function MotionStatusCard({
-  state = "upright",
-  lastUpdated = "now",
+  state = null,
+  lastUpdated = "—",
 }: MotionStatusCardProps) {
-  const { label, status } = stateConfig[state];
+  const { label, status } = state ? stateConfig[state] : UNKNOWN_STATE;
   const isCritical = state === "fall";
 
   return (

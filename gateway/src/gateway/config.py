@@ -66,6 +66,17 @@ class Settings(BaseSettings):
     mqtt_password: str = ""
     mqtt_topic_prefix: str = "safeguard"
 
+    # -- CORS (dashboard integration) ------------------------------------
+    cors_allow_origins: str = "http://localhost:3000"
+    """Comma-separated list of allowed browser origins for the dashboard
+    app. The gateway is called directly from the browser (REST + WS) per
+    `NEXT_PUBLIC_BACKEND_BASE_URL`), so CORS must be explicit. Set to `*`
+    to allow any origin (dev only — incompatible with credentials)."""
+
+    @property
+    def cors_allow_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]
+
 
 def settings_for_tests(**overrides) -> Settings:
     """Zero-infrastructure settings for tests — `memory` backends

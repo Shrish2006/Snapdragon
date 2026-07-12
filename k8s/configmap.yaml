@@ -18,6 +18,7 @@ data:
   EVENT_STORE_BACKEND: "postgres"
   POSTGRES_DSN: "postgresql://safeguard:safeguard@postgres:5432/safeguard"
   NEXT_PUBLIC_BACKEND_BASE_URL: "https://api-snapdragon.upayan.dev"
+  CORS_ALLOW_ORIGINS: "https://snapdragon.upayan.dev"
   MQTT_BROKER_HOST: "mosquitto"
   MQTT_BROKER_PORT: "1883"
   MQTT_USERNAME: "gateway"

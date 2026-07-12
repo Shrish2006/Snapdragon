@@ -76,6 +76,7 @@ All variables the code reads are documented in `.env.example`. Highlights:
 | `HF_HOME` | ppe-detection | Model cache dir (writable by the non-root user) |
 | `HF_TOKEN` | ppe-detection | Only needed if the model repo goes private |
 | `NEXT_PUBLIC_BACKEND_BASE_URL` | app | Browser-facing backend URL; swapped in at boot |
+| `CORS_ALLOW_ORIGINS` | gateway | Comma-separated browser origins allowed to call the gateway directly (REST + WebSocket) — the dashboard talks to `NEXT_PUBLIC_BACKEND_BASE_URL` from the browser, so this must exactly match the app's deployed origin. Default `http://localhost:3000`. |
 | `PPE_URL` / `FALL_URL` | gateway | Upstream ML service base URLs |
 | `EVENT_BUS_BACKEND` | gateway | `memory` (default) or `redis` — see `gateway/example.env` for the full set of gateway-specific variables (event store backend, Redis/SQLite paths, telemetry validation) |
 | `MQTT_BROKER_HOST` | gateway | Hostname of the Mosquitto broker (`mqtt` in Compose, `mosquitto` in K8s). Empty = MQTT disabled, gateway runs HTTP-only. |

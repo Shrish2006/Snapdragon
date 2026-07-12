@@ -52,6 +52,7 @@ services:
       MQTT_USERNAME: gateway
       MQTT_PASSWORD: ${MQTT_GATEWAY_PASSWORD:-changeme}
       MQTT_TOPIC_PREFIX: safeguard
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:3000}
       POSTGRES_DSN: postgresql://safeguard:safeguard@postgres:5432/safeguard
     ports:
       - "8080:8080"

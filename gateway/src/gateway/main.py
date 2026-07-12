@@ -41,6 +41,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from gateway.api.http import (
@@ -180,6 +181,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.ready = False
 
     app.middleware("http")(observability_middleware)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_allow_origin_list,
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     app.include_router(telemetry.router)
     app.include_router(helmets.router)

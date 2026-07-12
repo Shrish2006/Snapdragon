@@ -23,8 +23,14 @@ function StatusPill({ label, value, status }: StatusPillProps) {
   );
 }
 
+interface StatusStripProps {
+  sound?: { value: string; status: SensorStatus } | null;
+  airQuality?: { value: string; status: SensorStatus } | null;
+  gatewayHealth?: { value: string; status: SensorStatus } | null;
+}
+
 // Matches Figma: Frame 20, gap 14px, height ~71px
-export default function StatusStrip() {
+export default function StatusStrip({ sound, airQuality, gatewayHealth }: StatusStripProps) {
   return (
     <>
       <style>{`
@@ -34,9 +40,10 @@ export default function StatusStrip() {
         }
       `}</style>
       <div className="flex gap-[14px] w-full">
-        <StatusPill label="Helmet (FSR)" value="Worn" status="normal" />
-        <StatusPill label="Sound" value="80 db" status="warning" />
-        <StatusPill label="Air quality" value="Toxic" status="danger" />
+        <StatusPill label="Helmet (FSR)" value="No sensor" status="unknown" />
+        <StatusPill label="Sound" value={sound?.value ?? "—"} status={sound?.status ?? "unknown"} />
+        <StatusPill label="Air quality" value={airQuality?.value ?? "—"} status={airQuality?.status ?? "unknown"} />
+        <StatusPill label="Gateway" value={gatewayHealth?.value ?? "—"} status={gatewayHealth?.status ?? "unknown"} />
       </div>
     </>
   );
