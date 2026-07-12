@@ -17,7 +17,7 @@ from enum import Enum
 from typing import Any, Protocol
 
 from gateway.domain.common.identifiers import HelmetId
-from gateway.domain.detection.models import PPEDetectionResult
+from gateway.domain.detection.models import FallDetectionResult, PPEDetectionResult
 from gateway.domain.events.models import DomainEvent
 from gateway.domain.events.types import EventType
 from gateway.domain.helmets.models import HelmetState
@@ -137,3 +137,18 @@ class PPEDetectionClient(MLServiceClient, Protocol):
     async def detect(
         self, image: bytes, *, filename: str, content_type: str
     ) -> PPEDetectionResult: ...
+
+
+class FallDetectionClient(MLServiceClient, Protocol):
+    """Client port for the fall-detection service.
+
+    `ingest()` receives a complete 200-sample window assembled by
+    `FallDetectionProcessor` and returns a raw probability from the ONNX
+    model. The processor owns the buffer and debounce; this client is a
+    thin HTTP adapter over the stateless inference endpoint."""
+
+    async def ingest(
+        self,
+        helmet_id: str,
+        window: list[list[float]],
+    ) -> FallDetectionResult: ...
