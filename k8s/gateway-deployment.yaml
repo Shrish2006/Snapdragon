@@ -20,6 +20,8 @@ spec:
       labels:
         app.kubernetes.io/name: gateway
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: gateway
           image: ghcr.io/shrish2006/snapdragon/gateway:latest
@@ -29,6 +31,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: safeguard-config
+            - secretRef:
+                name: safeguard-secrets
+                optional: true
           resources:
             requests:
               memory: "128Mi"
@@ -38,7 +43,7 @@ spec:
               cpu: "500m"
           readinessProbe:
             httpGet:
-              path: /health
+              path: /ready
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
@@ -54,3 +59,10 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+      volumes:
+        - name: logs
+          persistentVolumeClaim:
+            claimName: safeguard-logs

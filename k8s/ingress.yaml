@@ -4,19 +4,10 @@ metadata:
   name: safeguard
   namespace: safeguard
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    nginx.ingress.kubernetes.io/proxy-body-size: "25m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    kubernetes.io/ingress.class: traefik
 spec:
-  ingressClassName: nginx
-  tls:
-    - hosts:
-        - snapdragon.upayan.dev
-        - api-snapdragon.upayan.dev
-        - ppe-snapdragon.upayan.dev
-        - fall-snapdragon.upayan.dev
-      secretName: safeguard-tls
+  ingressClassName: traefik
   rules:
     - host: snapdragon.upayan.dev
       http:
