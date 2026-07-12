@@ -21,7 +21,7 @@
  *   batch. Readings are logged to Serial for field debugging.
  *
  * ── Required libraries (Arduino IDE → Tools → Manage Libraries) ───────────
- *   WiFiNINA                  Arduino          latest
+ *   WiFi (board-bundled)      Arduino UNO Q zephyr board package (no install needed)
  *   PubSubClient              Nick O'Leary     ≥ 2.8
  *   ArduinoJson               Benoit Blanchon  ≥ 7.0
  *   Adafruit MPU6050          Adafruit         ≥ 2.2
@@ -36,8 +36,7 @@
  *   publishes.
  */
 
-#include <WiFiNINA.h>
-#include <WiFiUdp.h>
+#include <WiFi.h>      // provided by the Arduino UNO Q / zephyr board package
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <Adafruit_MPU6050.h>
