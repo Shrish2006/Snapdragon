@@ -22,15 +22,14 @@ _IS_LINUX = platform.system() == "Linux"
 def list_cameras() -> list[str]:
     """Return camera device names indexed by position (index 0, 1, ...)."""
     if _IS_LINUX:
-        import cv2
-
-        names: list[str] = []
-        for i in range(8):
-            cap = cv2.VideoCapture(i)
-            if cap.isOpened():
-                names.append(f"/dev/video{i}")
-                cap.release()
-        return names
+        import os
+        # Probe by path existence — faster and avoids blocking on a dead V4L2 node.
+        # Only include capture-capable nodes (even-indexed; odd are metadata-only).
+        return [
+            f"/dev/video{i}"
+            for i in range(8)
+            if os.path.exists(f"/dev/video{i}")
+        ]
     from pygrabber.dshow_graph import FilterGraph
 
     return FilterGraph().get_input_devices()

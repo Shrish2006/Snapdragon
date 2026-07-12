@@ -8,7 +8,7 @@ data:
   LOG_FILE_PATH: "/logs/project.log"
   HF_REPO: "gauravp22/vyra-yolo-ppe-detection"
   HF_FILE: "best.pt"
-  CAMERA_INDEX: "1"
+  CAMERA_INDEX: "0"
   HF_HOME: "/cache"
   PPE_URL: "http://ppe-detection:8000"
   FALL_URL: "http://fall-detection:8000"
