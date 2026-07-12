@@ -10,6 +10,12 @@ themselves, they only read `Container` off `app.state` (see
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from gateway.infrastructure.mqtt.adapter import MqttIngestionAdapter
+    from gateway.infrastructure.mqtt.presence import MqttPresenceAdapter
+
+
 from dataclasses import dataclass
 from datetime import timedelta
 
