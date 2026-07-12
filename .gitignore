@@ -16,6 +16,8 @@ logs/
 
 # EDA output (generated locally, not for production)
 AI_ML/fall_detection/eda_plots/
+AI_ML/fall_detection/training_plots/
+AI_ML/fall_detection/models/
 
 # Node (root-level safety; app/ has its own ignore too)
 node_modules/
