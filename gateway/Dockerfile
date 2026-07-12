@@ -22,7 +22,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
     LOG_LEVEL=INFO \
     EVENT_BUFFER=200
 
-RUN groupadd -r appgroup && useradd -r -g appgroup -u 1000 appuser \
+RUN groupadd -r appgroup && useradd -g appgroup -u 1000 appuser \
     && chown -R appuser:appgroup /app
 USER appuser
 

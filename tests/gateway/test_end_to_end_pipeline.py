@@ -13,10 +13,11 @@ context manager does not run ASGI lifespan events.
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
 import httpx
-
 from gateway.config import settings_for_tests
 from gateway.domain.events.types import EventType
 from gateway.main import create_app
@@ -100,3 +101,43 @@ async def test_rejected_telemetry_persists_a_validation_failed_event() -> None:
 
     assert events is not None
     assert events[0].payload.issues[0].field == "sequence"
+
+
+async def test_mqtt_ingestion_path_uses_the_same_pipeline_as_http() -> None:
+    """MQTT adapter calls the same IngestionService → EventBus → Persistence
+    pipeline as the HTTP route.
+
+    Bypasses the broker by calling `_handle()` directly on the adapter —
+    the broker connection is not under test here; the ingestion pipeline is.
+    """
+    from gateway.infrastructure.mqtt.adapter import MqttIngestionAdapter
+
+    app = create_app(settings_for_tests())
+    async with app.router.lifespan_context(app):
+        container = app.state.container
+        # Yield to the event loop so the background pipeline task can run
+        # and subscribe to the event bus before we publish.  The HTTP test
+        # gets this for free via FastAPI's multi-await request processing;
+        # a direct _handle() call needs the explicit yield.
+        await asyncio.sleep(0)
+        adapter = MqttIngestionAdapter(
+            container.ingestion_service,
+            broker_host="localhost",  # not connected — _handle skips the broker
+        )
+
+        batch = _valid_batch(sequence=1)
+        message = MagicMock()
+        message.topic = f"safeguard/telemetry/{batch['helmet_id']}"
+        message.payload = json.dumps(batch).encode()
+
+        await adapter._handle(message)
+
+        store = container.event_store
+        events = await _poll(
+            lambda: store.query(event_type=EventType.TELEMETRY_RECEIVED, limit=10),
+            lambda evts: len(evts) == 1,
+        )
+
+    assert events is not None
+    assert events[0].helmet_id == "HLM-0007"
+    assert events[0].payload.sequence == 1

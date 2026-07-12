@@ -10,7 +10,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 import pytest
-
 from gateway.domain.events.models import TelemetryReceivedEvent
 from gateway.domain.telemetry.models import ImuReading, SensorReading, TelemetryBatch
 from gateway.infrastructure.persistence.postgres import PostgresEventStore

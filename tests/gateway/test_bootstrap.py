@@ -5,7 +5,7 @@ backend selection actually wires the intended adapter, not just that
 import asyncio
 
 from gateway.bootstrap import build_container
-from gateway.config import settings_for_tests, Settings
+from gateway.config import Settings, settings_for_tests
 from gateway.domain.detection.models import PPEDetectionResult
 from gateway.domain.events.models import PPEDetectionEvent
 from gateway.infrastructure.bus.in_memory import InMemoryEventBus

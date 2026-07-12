@@ -8,7 +8,7 @@ from ultralytics import YOLO
 logger = logging.getLogger(__name__)
 
 _GREEN = (0, 255, 0)
-_RED   = (0, 0, 255)
+_RED = (0, 0, 255)
 
 VISIBILITY_THRESHOLD = 0.3
 
@@ -30,7 +30,8 @@ class PoseDetector:
         self, frame: np.ndarray, roi_pts: np.ndarray | None
     ) -> tuple[np.ndarray, bool]:
         """Run pose inference on frame (which may already have PPE annotations drawn on it).
-        Draws zone overlay and ankle dots in-place. Returns (annotated_frame, zone_triggered)."""
+        Draws zone overlay and ankle dots in-place. Returns (annotated_frame, zone_triggered).
+        """
         with torch.no_grad():
             results = self.model(frame, verbose=False)[0]
 

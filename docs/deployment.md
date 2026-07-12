@@ -22,6 +22,7 @@ Covers local development, image publishing to GHCR, and Kubernetes deployment.
 | `gateway` | `ghcr.io/shrish2006/snapdragon/gateway` | 8080 | 8080 |
 | `ppe-detection` | `ghcr.io/shrish2006/snapdragon/ppe-detection` | 8000 | 8001 |
 | `fall-detection` | `ghcr.io/shrish2006/snapdragon/fall-detection` | 8000 | 8002 |
+| `mqtt` (Mosquitto) | `eclipse-mosquitto:2` | 1883 (MQTT), 9001 (WS-MQTT) | 1883, 9001 |
 
 The ML services both listen on 8000 inside their containers; Compose maps them to
 distinct host ports.
@@ -75,8 +76,13 @@ All variables the code reads are documented in `.env.example`. Highlights:
 | `HF_HOME` | ppe-detection | Model cache dir (writable by the non-root user) |
 | `HF_TOKEN` | ppe-detection | Only needed if the model repo goes private |
 | `NEXT_PUBLIC_BACKEND_BASE_URL` | app | Browser-facing backend URL; swapped in at boot |
+| `CORS_ALLOW_ORIGINS` | gateway | Comma-separated browser origins allowed to call the gateway directly (REST + WebSocket) — the dashboard talks to `NEXT_PUBLIC_BACKEND_BASE_URL` from the browser, so this must exactly match the app's deployed origin. Default `http://localhost:3000`. |
 | `PPE_URL` / `FALL_URL` | gateway | Upstream ML service base URLs |
 | `EVENT_BUS_BACKEND` | gateway | `memory` (default) or `redis` — see `gateway/example.env` for the full set of gateway-specific variables (event store backend, Redis/SQLite paths, telemetry validation) |
+| `MQTT_BROKER_HOST` | gateway | Hostname of the Mosquitto broker (`mqtt` in Compose, `mosquitto` in K8s). Empty = MQTT disabled, gateway runs HTTP-only. |
+| `MQTT_BROKER_PORT` | gateway | Default `1883`. |
+| `MQTT_USERNAME` / `MQTT_PASSWORD` | gateway | Broker credentials for the gateway service account. |
+| `MQTT_TOPIC_PREFIX` | gateway | Topic namespace prefix (default `safeguard`). |
 
 > **Next.js note:** `NEXT_PUBLIC_*` values are inlined at build time. The app image's
 > `docker-entrypoint.sh` rewrites the baked default at container start, so the same

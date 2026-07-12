@@ -41,6 +41,7 @@ jobs:
               - 'tests/**'
               - 'pytest.ini'
               - 'ruff.toml'
+              - 'pyproject.toml'
 
   python-quality:
     name: Python lint + tests
@@ -54,7 +55,9 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install tooling
-        run: python -m pip install ruff pytest pytest-asyncio "fastapi[standard]" "uvicorn[standard]" httpx "pydantic-settings>=2.6" "python-multipart>=0.0.12" "redis>=5.0" "aiosqlite>=0.20" "prometheus-client>=0.20" "asyncpg>=0.30" fakeredis
+        run: python -m pip install ruff black pytest pytest-asyncio "fastapi[standard]" "uvicorn[standard]" httpx "pydantic-settings>=2.6" "python-multipart>=0.0.12" "redis>=5.0" "aiosqlite>=0.20" "prometheus-client>=0.20" "asyncpg>=0.30" "aiomqtt>=2.0" fakeredis
+      - name: Format (black)
+        run: black --check gateway/src ai_ml
       - name: Lint (ruff)
         run: ruff check gateway ai_ml tests
       - name: Test (pytest)

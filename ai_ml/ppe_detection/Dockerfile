@@ -31,7 +31,7 @@ ENV PYTHONPATH=/app
 ENV PATH="/app/ppe_detection/.venv/bin:$PATH"
 ENV VIRTUAL_ENV="/app/ppe_detection/.venv"
 
-RUN groupadd -r appgroup && useradd -r -g appgroup -u 1000 appuser \
+RUN groupadd -r appgroup && useradd -g appgroup -u 1000 appuser \
     && chown -R appuser:appgroup /app
 USER appuser
 

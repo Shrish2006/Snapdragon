@@ -2,7 +2,6 @@
 FastAPI dependency overrides so no real ML service is contacted."""
 
 from fastapi.testclient import TestClient
-
 from gateway.api.http.deps import get_ppe_detection_service, get_service_health
 from gateway.application.detection_service import DetectPPERequest, PPEDetectionService
 from gateway.application.ports import ServiceHealth

@@ -1,5 +1,12 @@
 target-version = "py311"
 
+[lint]
+extend-select = ["I"]
+extend-ignore = ["E501"]
+
 [lint.per-file-ignores]
 # sys.path bootstrap before local imports
 "ai_ml/ppe_detection/app.py" = ["E402"]
+# matplotlib.use("Agg") must precede pyplot/numpy/torch imports
+"ai_ml/fall_detection/eda.py" = ["E402"]
+"ai_ml/fall_detection/train.py" = ["E402"]

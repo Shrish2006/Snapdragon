@@ -3,16 +3,16 @@
 import { tokens, fontSora, fontMono } from "./tokens";
 
 interface TemperatureCardProps {
-  bodyTemp?: number;
-  ambientTemp?: number;
+  bodyTemp?: number | null;
+  ambientTemp?: number | null;
   lastUpdated?: string;
 }
 
 // Matches Figma: Group 29, 256x136, bg #1C1F24, radius 10
 export default function TemperatureCard({
-  bodyTemp = 36.8,
-  ambientTemp = 29.4,
-  lastUpdated = "30 sec ago",
+  bodyTemp = null,
+  ambientTemp = null,
+  lastUpdated = "—",
 }: TemperatureCardProps) {
   return (
     <div
@@ -50,7 +50,7 @@ export default function TemperatureCard({
             Body
           </span>
           <span style={{ fontFamily: fontMono, fontWeight: 500, fontSize: 7, lineHeight: "9px", color: tokens.textTertiary }}>
-            {bodyTemp}°C
+            {bodyTemp !== null ? `${bodyTemp}°C` : "No sensor"}
           </span>
         </div>
 
@@ -61,7 +61,7 @@ export default function TemperatureCard({
             Ambient
           </span>
           <span style={{ fontFamily: fontMono, fontWeight: 500, fontSize: 7, lineHeight: "9px", color: tokens.textTertiary }}>
-            {ambientTemp}°C
+            {ambientTemp !== null ? `${ambientTemp}°C` : "—"}
           </span>
         </div>
       </div>

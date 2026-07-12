@@ -81,13 +81,15 @@ docker compose up --build
 
 | Service | URL | Endpoints |
 |---------|-----|-----------|
-| app (dashboard) | http://localhost:3000 | Next.js UI, `/api/health` |
-| gateway | http://localhost:8080 | `/v1/telemetry`, `/v1/helmets`, `/v1/detections/ppe`, `/v1/status`, `/v1/events`, `/v1/ws` (WebSocket), `/health`, `/ready`, `/metrics` |
-| ppe_detection | http://localhost:8001 | `/health`, `/ready`, `/detect`, `/stream` |
-| fall_detection | http://localhost:8002 | `/health` |
+| app (dashboard) | https://snapdragon.upayan.dev | Next.js UI, `/api/health` |
+| gateway | https://api-snapdragon.upayan.dev | `/v1/telemetry` (HTTP + MQTT), `/v1/helmets`, `/v1/detections/ppe`, `/v1/status`, `/v1/events`, `/v1/ws` (WebSocket), `/health`, `/ready`, `/metrics` |
+| mqtt (Mosquitto) | `138.201.157.147:31883` | Helmet telemetry broker — connect Arduino here |
+| ppe_detection | http://localhost:8001 (local only) | `/health`, `/ready`, `/detect`, `/stream` |
+| fall_detection | http://localhost:8002 (local only) | `/health` |
 
-`docker compose up` runs the hot-reload dev stack (see `compose.override.yml`). For a
-production-like run without overrides: `docker compose -f docker-compose.yml up --build`.
+**For electronics:** point `MQTT_HOST` to `138.201.157.147` and `MQTT_PORT` to `31883`.
+Broker allows anonymous connections — no username/password needed. See
+`helmet/README.md` for full firmware setup.
 
 The PPE service runs CPU-only by default and downloads its model from HuggingFace on
 first start. GPU + camera are opt-in — see the commented block in `docker-compose.yml`.
@@ -95,7 +97,10 @@ first start. GPU + camera are opt-in — see the commented block in `docker-comp
 ### Hardware / models (optional)
 
 - Flash the helmet firmware: open `helmet/helmet_firmware.ino` in the Arduino IDE,
-  select **Arduino UNO Q**, and upload.
+  select **Arduino UNO Q**, and upload. See `helmet/README.md` for library
+  requirements and configuration (`HELMET_ID`, `MQTT_HOST`, WiFi credentials).
+- Helmets connect to the Mosquitto broker at port 1883 and publish telemetry to
+  `safeguard/telemetry/{helmet_id}`. The gateway subscribes and ingests automatically.
 - Model weights are pulled automatically at runtime; `models/download_models.sh` is a
   placeholder for pre-fetching them.
 

@@ -7,7 +7,6 @@ XACK) this adapter issues, so this genuinely exercises the adapter's logic.
 
 import fakeredis.aioredis
 import pytest
-
 from gateway.domain.detection.models import PPEDetectionResult
 from gateway.domain.events.models import PPEDetectionEvent
 from gateway.infrastructure.bus.redis_streams import RedisStreamsEventBus

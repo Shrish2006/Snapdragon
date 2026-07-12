@@ -39,11 +39,12 @@ export const tokens = {
   humidityColor: "#819DF2",
 } as const;
 
-export type SensorStatus = "normal" | "warning" | "danger";
+export type SensorStatus = "normal" | "warning" | "danger" | "unknown";
 
 export const statusColor = (status: SensorStatus) => {
   if (status === "danger") return tokens.red;
   if (status === "warning") return tokens.amber;
+  if (status === "unknown") return tokens.textTertiary;
   return tokens.green;
 };
 

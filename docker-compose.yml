@@ -47,6 +47,12 @@ services:
       EVENT_BUS_BACKEND: redis
       REDIS_URL: redis://redis:6379/0
       EVENT_STORE_BACKEND: postgres
+      MQTT_BROKER_HOST: mqtt
+      MQTT_BROKER_PORT: "1883"
+      MQTT_USERNAME: gateway
+      MQTT_PASSWORD: ${MQTT_GATEWAY_PASSWORD:-changeme}
+      MQTT_TOPIC_PREFIX: safeguard
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:3000}
       POSTGRES_DSN: postgresql://safeguard:safeguard@postgres:5432/safeguard
     ports:
       - "8080:8080"
@@ -58,6 +64,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      mqtt:
         condition: service_healthy
     healthcheck:
       test:
@@ -155,5 +163,21 @@ networks:
   safeguard:
     driver: bridge
 
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: safeguard-mqtt
+    <<: *safeguard-defaults
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./gateway/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_pub -h 127.0.0.1 -p 1883 -t healthcheck -m ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 volumes:
   postgres_data:

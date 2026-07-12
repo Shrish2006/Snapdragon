@@ -1,0 +1,148 @@
+# Light dev stack — app + gateway + postgres + redis only.
+# ML services (ppe-detection, fall-detection) are replaced by in-process
+# mock clients (MOCK_ML=true). Use with `make dev-light`.
+#
+# docker compose -f docker-compose.light.yml up --build -d
+
+name: safeguard-light
+
+x-safeguard-defaults: &safeguard-defaults
+  restart: unless-stopped
+  networks:
+    - safeguard
+
+services:
+  app:
+    image: ${IMAGE_REGISTRY:-ghcr.io/shrish2006/snapdragon}/app:${IMAGE_TAG:-latest}
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+      target: deps
+    container_name: safeguard-app
+    <<: *safeguard-defaults
+    command: ["pnpm", "exec", "next", "dev", "-H", "0.0.0.0", "-p", "3000"]
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_BACKEND_BASE_URL: ${APP_BACKEND_URL:-http://localhost:8080}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./app:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      gateway:
+        condition: service_started
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+
+  gateway:
+    image: ${IMAGE_REGISTRY:-ghcr.io/shrish2006/snapdragon}/gateway:${IMAGE_TAG:-latest}
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: safeguard-gateway
+    <<: *safeguard-defaults
+    command: ["uvicorn", "gateway.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTHONPATH: /app/src
+      MOCK_ML: "true"
+      PPE_URL: http://localhost:8001
+      TELEMETRY_MAX_CLOCK_SKEW_SECONDS: "604800"
+      FALL_URL: http://localhost:8002
+      EVENT_BUFFER: ${EVENT_BUFFER:-200}
+      EVENT_BUS_BACKEND: redis
+      REDIS_URL: redis://redis:6379/0
+      EVENT_STORE_BACKEND: postgres
+      POSTGRES_DSN: postgresql://safeguard:safeguard@postgres:5432/safeguard
+      MQTT_BROKER_HOST: mqtt
+      MQTT_BROKER_PORT: "1883"
+      MQTT_USERNAME: gateway
+      MQTT_PASSWORD: ${MQTT_GATEWAY_PASSWORD:-changeme}
+      MQTT_TOPIC_PREFIX: safeguard
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./gateway:/app
+      - /app/.venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mqtt:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: safeguard-postgres
+    <<: *safeguard-defaults
+    environment:
+      POSTGRES_USER: safeguard
+      POSTGRES_PASSWORD: safeguard
+      POSTGRES_DB: safeguard
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safeguard"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    container_name: safeguard-redis
+    <<: *safeguard-defaults
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: safeguard-mqtt
+    <<: *safeguard-defaults
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./gateway/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_pub -h 127.0.0.1 -p 1883 -t healthcheck -m ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+networks:
+  safeguard:
+    driver: bridge
+
+volumes:
+  postgres_data:

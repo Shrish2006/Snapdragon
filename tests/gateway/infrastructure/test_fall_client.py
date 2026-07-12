@@ -1,7 +1,6 @@
 """Tests for `gateway.infrastructure.ml_clients.fall_client.FallDetectionHttpClient`."""
 
 import httpx
-
 from gateway.application.ports import ServiceHealth
 from gateway.infrastructure.ml_clients.fall_client import FallDetectionHttpClient
 

@@ -26,11 +26,10 @@ from PIL import Image
 from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import setup_logging
-
 import drawing as dw
 from camera import Camera
-from inference import PPEDetector, PoseDetector, foot_point, point_in_polygon
+from config import setup_logging
+from inference import PoseDetector, PPEDetector, foot_point, point_in_polygon
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -39,13 +38,26 @@ HERE = Path(__file__).parent
 POSE_MODEL = str(HERE / "yolov8n-pose.onnx")
 PPE_MODEL = str(HERE / "best.onnx")
 PPE_NAMES = {
-    0: "Fall-Detected", 1: "Gloves", 2: "Goggles", 3: "Hardhat", 4: "Ladder",
-    5: "Mask", 6: "NO-Gloves", 7: "NO-Goggles", 8: "NO-Hardhat", 9: "NO-Mask",
-    10: "NO-Safety Vest", 11: "Person", 12: "Safety Cone", 13: "Safety Vest",
+    0: "Fall-Detected",
+    1: "Gloves",
+    2: "Goggles",
+    3: "Hardhat",
+    4: "Ladder",
+    5: "Mask",
+    6: "NO-Gloves",
+    7: "NO-Goggles",
+    8: "NO-Hardhat",
+    9: "NO-Mask",
+    10: "NO-Safety Vest",
+    11: "Person",
+    12: "Safety Cone",
+    13: "Safety Vest",
 }
 
 CAMERA_INDEX = int(os.getenv("CAMERA_INDEX", "0"))
-CAMERA_SWAP_RB = bool(int(os.getenv("CAMERA_SWAP_RB", "0")))  # set 1 if colors look swapped
+CAMERA_SWAP_RB = bool(
+    int(os.getenv("CAMERA_SWAP_RB", "0"))
+)  # set 1 if colors look swapped
 STREAM_QUALITY = int(os.getenv("STREAM_QUALITY", "85"))
 DEBUG_POSE = bool(int(os.getenv("DEBUG_POSE", "0")))
 ZONE_HOLD_SECS = 1.2  # keep zone red briefly after last trigger (anti-flicker)
@@ -193,10 +205,12 @@ def ready() -> dict:
 def get_roi() -> JSONResponse:
     with _roi_lock:
         pts = _roi_points
-    return JSONResponse({
-        "points": [] if pts is None else pts.tolist(),
-        "frame": {"width": 640, "height": 480},
-    })
+    return JSONResponse(
+        {
+            "points": [] if pts is None else pts.tolist(),
+            "frame": {"width": 640, "height": 480},
+        }
+    )
 
 
 class ROIRequest(BaseModel):
@@ -225,7 +239,10 @@ async def detect(file: UploadFile = File(...)) -> JSONResponse:
     except Exception:  # noqa: BLE001
         raise HTTPException(400, "invalid image data")
     dets = _ppe.detect(frame)
-    out = [{"class_name": d["name"], "confidence": d["conf"], "bbox": d["bbox"]} for d in dets]
+    out = [
+        {"class_name": d["name"], "confidence": d["conf"], "bbox": d["bbox"]}
+        for d in dets
+    ]
     return JSONResponse({"detections": out})
 
 
@@ -240,7 +257,9 @@ def _mjpeg():
 def stream() -> StreamingResponse:
     if not _ready:
         raise HTTPException(503, "model not loaded")
-    return StreamingResponse(_mjpeg(), media_type="multipart/x-mixed-replace; boundary=frame")
+    return StreamingResponse(
+        _mjpeg(), media_type="multipart/x-mixed-replace; boundary=frame"
+    )
 
 
 if __name__ == "__main__":
