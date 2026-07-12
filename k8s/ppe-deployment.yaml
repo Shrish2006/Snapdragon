@@ -7,7 +7,8 @@ metadata:
     app.kubernetes.io/name: ppe-detection
 spec:
   replicas: 1
-  # A single GPU can't be shared by two pods, so never surge — replace in place.
+  # ONNX Runtime pipeline — CPU-only (QNN/DirectML opt-in via onnxruntime providers).
+  # Pinned to the ml-laptop node via nodeSelector + toleration.
   strategy:
     type: Recreate
   selector:
@@ -18,9 +19,14 @@ spec:
       labels:
         app.kubernetes.io/name: ppe-detection
     spec:
-      runtimeClassName: nvidia
-      # Makes the emptyDir cache and the logs PVC writable by the image's non-root
-      # user (uid 1000) — the container adds gid 1000 as a supplementary group.
+      nodeSelector:
+        safeguard.io/role: ml
+      tolerations:
+        - key: safeguard.io/ml
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      # Makes the emptyDir cache writable by the image's non-root user (uid 1000).
       securityContext:
         fsGroup: 1000
       containers:
@@ -35,18 +41,18 @@ spec:
             - secretRef:
                 name: safeguard-secrets
                 optional: true
+          # Override log path to stdout — avoids cross-node RWO PVC conflict.
+          env:
+            - name: LOG_FILE_PATH
+              value: ""
           resources:
             requests:
-              memory: "2Gi"
-              cpu: "1"
-              nvidia.com/gpu: "1"
+              memory: "1Gi"
+              cpu: "2"
             limits:
-              memory: "6Gi"
+              memory: "3Gi"
               cpu: "4"
-              nvidia.com/gpu: "1"
           volumeMounts:
-            - name: logs
-              mountPath: /logs
             - name: hf-cache
               mountPath: /cache
           readinessProbe:
@@ -66,8 +72,5 @@ spec:
           securityContext:
             privileged: true
       volumes:
-        - name: logs
-          persistentVolumeClaim:
-            claimName: safeguard-logs
         - name: hf-cache
           emptyDir: {}

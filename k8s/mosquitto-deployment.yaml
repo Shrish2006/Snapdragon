@@ -25,7 +25,14 @@ spec:
               name: mqtt
           volumeMounts:
             - name: config
-              mountPath: /mosquitto/config
+              mountPath: /mosquitto/config/mosquitto.conf
+              subPath: mosquitto.conf
+            - name: config
+              mountPath: /mosquitto/config/acl.conf
+              subPath: acl.conf
+            - name: config
+              mountPath: /mosquitto/config/passwd
+              subPath: passwd
           resources:
             requests:
               memory: "32Mi"
@@ -47,10 +54,3 @@ spec:
         - name: config
           configMap:
             name: mosquitto-config
-            items:
-              - key: mosquitto.conf
-                path: mosquitto.conf
-              - key: acl.conf
-                path: acl.conf
-              - key: passwd
-                path: passwd
