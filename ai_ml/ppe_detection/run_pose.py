@@ -18,7 +18,10 @@ CONF = 0.5
 # ── register the Hexagon NPU (QNN) plugin execution provider ──
 try:
     import onnxruntime_qnn as qnn_ep
-    ort.register_execution_provider_library("QNNExecutionProvider", qnn_ep.get_library_path())
+
+    ort.register_execution_provider_library(
+        "QNNExecutionProvider", qnn_ep.get_library_path()
+    )
     _HAVE_QNN = True
 except Exception as e:  # noqa: BLE001
     print("QNN EP not available, will use CPU:", e)
@@ -54,21 +57,23 @@ def make_session():
 def main(path: str):
     img = Image.open(path).convert("RGB")
     lb, r, dx, dy = letterbox(img)
-    x = (np.asarray(lb, dtype=np.float32) / 255.0).transpose(2, 0, 1)[None]  # (1,3,640,640)
+    x = (np.asarray(lb, dtype=np.float32) / 255.0).transpose(2, 0, 1)[
+        None
+    ]  # (1,3,640,640)
 
     sess = make_session()
     print("running on:", sess.get_providers())
 
     out = sess.run(None, {sess.get_inputs()[0].name: x})[0]  # (1,56,8400)
-    preds = out[0].T                                          # (8400,56)
-    preds = preds[preds[:, 4] > CONF]                         # conf filter
+    preds = out[0].T  # (8400,56)
+    preds = preds[preds[:, 4] > CONF]  # conf filter
     print(f"detected {len(preds)} person(s) above conf {CONF}")
 
     for i, p in enumerate(preds[:5]):
-        kpts = p[5:].reshape(17, 3)                           # 17 x (x,y,conf), 640-space
+        kpts = p[5:].reshape(17, 3)  # 17 x (x,y,conf), 640-space
         for name, idx in (("L-ankle", 15), ("R-ankle", 16)):
             kx, ky, kc = kpts[idx]
-            ox, oy = (kx - dx) / r, (ky - dy) / r             # back to original coords
+            ox, oy = (kx - dx) / r, (ky - dy) / r  # back to original coords
             print(f"  person{i} {name}: ({ox:.0f},{oy:.0f}) conf={kc:.2f}")
 
 

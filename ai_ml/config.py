@@ -4,7 +4,6 @@ import os
 import sys
 from datetime import datetime, timezone
 
-
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "")
 

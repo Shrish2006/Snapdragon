@@ -59,8 +59,22 @@ def draw_ppe(img: Image.Image, dets) -> None:
 
 # COCO 17-keypoint skeleton edges (for DEBUG_POSE mode)
 _SKELETON = [
-    (5, 7), (7, 9), (6, 8), (8, 10), (5, 6), (5, 11), (6, 12), (11, 12),
-    (11, 13), (13, 15), (12, 14), (14, 16), (0, 1), (0, 2), (1, 3), (2, 4),
+    (5, 7),
+    (7, 9),
+    (6, 8),
+    (8, 10),
+    (5, 6),
+    (5, 11),
+    (6, 12),
+    (11, 12),
+    (11, 13),
+    (13, 15),
+    (12, 14),
+    (14, 16),
+    (0, 1),
+    (0, 2),
+    (1, 3),
+    (2, 4),
 ]
 _CYAN = (0, 220, 255)
 _VIS = 0.3
@@ -73,7 +87,9 @@ def draw_skeleton(img: Image.Image, persons) -> None:
         kp = p["keypoints"]
         for a, b in _SKELETON:
             if kp[a, 2] > _VIS and kp[b, 2] > _VIS:
-                d.line([(kp[a, 0], kp[a, 1]), (kp[b, 0], kp[b, 1])], fill=_CYAN, width=2)
+                d.line(
+                    [(kp[a, 0], kp[a, 1]), (kp[b, 0], kp[b, 1])], fill=_CYAN, width=2
+                )
         for x, y, c in kp:
             if c > _VIS:
                 d.ellipse([x - 3, y - 3, x + 3, y + 3], fill=_CYAN)

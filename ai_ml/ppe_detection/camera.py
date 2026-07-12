@@ -60,7 +60,9 @@ class Camera:
         with self._lock:
             if self._latest is None:
                 return None
-            return self._latest[:, :, ::-1].copy() if self.swap_rb else self._latest.copy()
+            return (
+                self._latest[:, :, ::-1].copy() if self.swap_rb else self._latest.copy()
+            )
 
     def reopen(self) -> None:
         self.close()
