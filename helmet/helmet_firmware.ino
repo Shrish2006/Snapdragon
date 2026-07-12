@@ -38,11 +38,12 @@ static const char* HELMET_ID   = "helmet-01";
 static const char* WIFI_SSID   = "YOUR_SSID";
 static const char* WIFI_PASS   = "YOUR_WIFI_PASSWORD";
 
-// MQTT broker — point at the Compose host (localhost:1883) or K8s LB IP
-static const char* MQTT_HOST   = "192.168.1.100";  // replace with broker IP/hostname
-static const int   MQTT_PORT   = 1883;
-static const char* MQTT_USER   = "helmet-01";      // must equal HELMET_ID in prod
-static const char* MQTT_PASS   = "REPLACE_ME";     // empty string if allow_anonymous
+// MQTT broker — deployed VPS at 138.201.157.147:31883 (NodePort).
+// For local dev: localhost:1883. Anonymous access, no password required.
+static const char* MQTT_HOST   = "138.201.157.147";
+static const int   MQTT_PORT   = 31883;
+static const char* MQTT_USER   = "helmet-01";      // must equal HELMET_ID
+static const char* MQTT_PASS   = "";               // anonymous access
 
 // Sensor pins
 static const int   MQ2_PIN     = A0;   // MQ-2 gas sensor (LPG / smoke)
