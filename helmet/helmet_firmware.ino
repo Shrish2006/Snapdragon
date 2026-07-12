@@ -4,45 +4,45 @@
  * Reads all onboard helmet sensors and publishes a TelemetryBatch JSON
  * to the SafeGuard gateway via MQTT every BATCH_INTERVAL_MS.
  *
+ * Board:      Arduino UNO Q (zephyr architecture)
+ * Networking: Arduino_RouterBridge — WiFi is managed by the companion
+ *             router chip; no WiFi credentials are needed in this sketch.
+ *
  * ── MQTT-published sensor types (match gateway SENSOR_REGISTRY) ──────────
  *   MPU-6050  → "imu"              I2C 0x68, SDA/SCL
  *   MQ-2      → "gas_lpg"          A0, 10-bit raw ADC
  *   MQ-7      → "carbon_monoxide"  A1, 10-bit raw ADC
- *   DHT-22    → "environment"      D4, temp / humidity / heat-index
+ *   DHT-22    → "environment"      D4
  *   Sound     → "sound_level"      A2, peak ADC over 100 ms window
  *
  * ── Sensors read locally (NOT in MQTT payload) ───────────────────────────
- *   MAX30102  → IR raw value        I2C 0x57 (shared bus; no addr conflict)
+ *   MAX30102  → IR raw value        I2C 0x57 (shared bus, no conflict)
  *   FSR       → pressure raw ADC    A3, helmet-worn detection
  *
- *   Reason for exclusion: these sensor kinds are not registered in the
- *   gateway's SENSOR_REGISTRY (sensors.py). Including an unknown "kind"
- *   causes the gateway's Pydantic discriminated union to reject the entire
- *   batch. Readings are logged to Serial for field debugging.
+ *   These sensor kinds are not registered in the gateway SENSOR_REGISTRY.
+ *   Including an unknown kind causes the gateway to reject the whole batch.
+ *   Values are logged to Monitor for field debugging only.
  *
  * ── Required libraries (Arduino IDE → Tools → Manage Libraries) ───────────
- *   WiFi (board-bundled)      Arduino UNO Q zephyr board package (no install needed)
- *   PubSubClient              Nick O'Leary     ≥ 2.8
- *   ArduinoJson               Benoit Blanchon  ≥ 7.0
- *   Adafruit MPU6050          Adafruit         ≥ 2.2
- *   Adafruit Unified Sensor   Adafruit         ≥ 1.1
- *   DHT sensor library        Adafruit         ≥ 1.4
- *   NTPClient                 Fabrice Weinberg ≥ 3.2
+ *   Arduino_RouterBridge    bundled with Arduino UNO Q board package
+ *   PubSubClient            Nick O'Leary     ≥ 2.8
+ *   ArduinoJson             Benoit Blanchon  ≥ 7.0
+ *   Adafruit MPU6050        Adafruit         ≥ 2.2
+ *   Adafruit Unified Sensor Adafruit         ≥ 1.1
+ *   DHT sensor library      Adafruit         ≥ 1.4
  *   SparkFun MAX3010x Sensor Library  SparkFun ≥ 1.1
  *
  * ── Flash ────────────────────────────────────────────────────────────────
- *   Tools → Board → Arduino UNO Q WiFi, then Upload.
- *   Monitor at 115 200 baud to confirm WiFi → MQTT connection and batch
- *   publishes.
+ *   Tools → Board → Arduino UNO Q, then Upload.
+ *   Open Monitor at 115200 baud to confirm connection and batch publishes.
  */
 
-#include <WiFi.h>      // provided by the Arduino UNO Q / zephyr board package
+#include <Arduino_RouterBridge.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
-#include <NTPClient.h>
 #include <Wire.h>
 #include "MAX30105.h"
 
@@ -50,46 +50,48 @@
 // CONFIG — edit these values per device before flashing
 // ════════════════════════════════════════════════════════════════════════════
 
-// Device identity — must match the MQTT username and the gateway's HelmetId
-// pattern: [A-Za-z0-9][A-Za-z0-9_-]{0,63}
-static const char* HELMET_ID  = "helmet-01";
-
-static const char* WIFI_SSID  = "YOUR_SSID";
-static const char* WIFI_PASS  = "YOUR_WIFI_PASSWORD";
+// Device identity — must match gateway HelmetId pattern:
+// [A-Za-z0-9][A-Za-z0-9_-]{0,63}
+static const char* HELMET_ID = "helmet-01";
 
 // MQTT broker:
-//   Production VPS (any internet connection): 138.201.157.147 : 31883
-//   Docker Compose, same machine:             localhost        : 1883
-//   Docker Compose, Arduino on LAN:           <PC LAN IP>     : 1883
-static const char* MQTT_HOST  = "138.201.157.147";
-static const int   MQTT_PORT  = 31883;
-static const char* MQTT_USER  = "helmet-01";  // must equal HELMET_ID
-static const char* MQTT_PASS  = "";           // broker uses anonymous access
+//   Production VPS (anywhere on internet): 138.201.157.147 : 31883
+//   Docker Compose, same machine:          localhost        : 1883
+//   Docker Compose, Arduino on LAN:        <PC LAN IP>     : 1883
+static const char* MQTT_HOST = "138.201.157.147";
+static const int   MQTT_PORT = 31883;
+static const char* MQTT_USER = "helmet-01";  // must equal HELMET_ID
+static const char* MQTT_PASS = "";           // broker uses anonymous access
 
 // ════════════════════════════════════════════════════════════════════════════
 // Pin assignments
 // ════════════════════════════════════════════════════════════════════════════
 
-static const uint8_t PIN_MQ2   = A0;  // MQ-2  gas (LPG / smoke)
-static const uint8_t PIN_MQ7   = A1;  // MQ-7  carbon monoxide
-static const uint8_t PIN_SOUND = A2;  // sound sensor (analog peak)
-static const uint8_t PIN_DHT   = 4;   // DHT-22 data
-static const uint8_t PIN_FSR   = A3;  // FSR pressure (local log only)
+static const uint8_t PIN_MQ2   = A0;
+static const uint8_t PIN_MQ7   = A1;
+static const uint8_t PIN_SOUND = A2;
+static const uint8_t PIN_DHT   = 4;
+static const uint8_t PIN_FSR   = A3;  // local log only
 
 // ════════════════════════════════════════════════════════════════════════════
 // Timing and sizing constants
 // ════════════════════════════════════════════════════════════════════════════
 
-static const unsigned long BATCH_INTERVAL_MS = 500;    // 2 Hz publish rate
-static const unsigned long NTP_SYNC_INTERVAL = 60000;  // NTP re-sync period (ms)
-static const unsigned long SOUND_SAMPLE_MS   = 100;    // peak-sample window (ms)
+static const unsigned long BATCH_INTERVAL_MS  = 500;    // 2 Hz publish rate
+static const unsigned long SOUND_SAMPLE_MS    = 100;    // peak-sample window
+static const unsigned long NTP_SYNC_MS        = 60000;  // NTP re-sync period
+static const uint16_t      MQTT_BUF_SIZE      = 1024;
+static const int           FSR_WORN_THRESHOLD = 90;
 
-// Worst-case serialised JSON ≈ 750 bytes; MQTT fixed+variable header ≈ 38 bytes.
-// Buffer must be large enough for the full PUBLISH packet.
-static const uint16_t MQTT_BUF_SIZE = 1024;
+// ════════════════════════════════════════════════════════════════════════════
+// NTP constants
+// ════════════════════════════════════════════════════════════════════════════
 
-// FSR ADC reading above which the helmet is considered worn (fsr_test.ino).
-static const int FSR_WORN_THRESHOLD = 90;
+static const char         NTP_SERVER[]   = "pool.ntp.org";
+static const unsigned int NTP_PORT       = 123;
+static const unsigned int NTP_LOCAL_PORT = 8888;
+static const int          NTP_PACKET_SIZE = 48;
+static const unsigned long SEVENTY_YEARS = 2208988800UL;
 
 // ════════════════════════════════════════════════════════════════════════════
 // MQTT topic strings — built once in setup()
@@ -100,8 +102,8 @@ static char TOPIC_STATUS[80];
 static char TOPIC_COMMAND[80];
 
 // ════════════════════════════════════════════════════════════════════════════
-// Sensor value structs — defined here so Arduino IDE prototype injection
-// sees them before the auto-generated readImu() / readEnv() prototypes.
+// Sensor value structs — defined before any function so Arduino IDE prototype
+// injection does not generate readImu() / readEnv() before these types exist.
 // ════════════════════════════════════════════════════════════════════════════
 
 struct ImuData {
@@ -119,31 +121,77 @@ struct EnvData {
 // Peripheral instances
 // ════════════════════════════════════════════════════════════════════════════
 
-static WiFiClient       netClient;
-static PubSubClient     mqtt(netClient);
-static WiFiUDP          ntpUdp;
-static NTPClient        ntp(ntpUdp, "pool.ntp.org", 0, NTP_SYNC_INTERVAL);
-static Adafruit_MPU6050 mpuSensor;
-static DHT              dhtSensor(PIN_DHT, DHT22);
-static MAX30105         maxSensor;
+static BridgeTCPClient<>  netClient(Bridge);  // TCP transport for PubSubClient
+static PubSubClient       mqtt(netClient);
+static BridgeUDP<4096>    ntpUdp(Bridge);     // UDP transport for NTP
+static Adafruit_MPU6050   mpuSensor;
+static DHT                dhtSensor(PIN_DHT, DHT22);
+static MAX30105           maxSensor;
 
 // ════════════════════════════════════════════════════════════════════════════
 // Runtime state
 // ════════════════════════════════════════════════════════════════════════════
 
-static uint32_t txSequence  = 0;      // monotonically increasing per device
-static uint32_t lastBatchMs = 0;      // millis() of last successful publish
-static bool     mpuOk       = false;  // set true when MPU-6050 initialises
-static bool     maxOk       = false;  // set true when MAX30102 initialises
+static uint32_t      txSequence   = 0;
+static uint32_t      lastBatchMs  = 0;
+static bool          mpuOk        = false;
+static bool          maxOk        = false;
+static unsigned long cachedEpoch  = 0;  // last NTP epoch (Unix seconds)
+static unsigned long epochMillis  = 0;  // millis() at the time cachedEpoch was set
+static unsigned long lastNtpSync  = 0;  // millis() of last successful NTP sync
+
+// ════════════════════════════════════════════════════════════════════════════
+// NTP — manual implementation using BridgeUDP (NTPClient library is not
+// compatible with BridgeUDP; the UDP_NTP_client board example does it manually)
+// ════════════════════════════════════════════════════════════════════════════
+
+// Sends one NTP request and returns the Unix epoch, or 0 on failure.
+static unsigned long fetchNtpTime() {
+  byte buf[NTP_PACKET_SIZE];
+  memset(buf, 0, NTP_PACKET_SIZE);
+  buf[0]  = 0b11100011;  // LI=3, Version=4, Mode=3 (client)
+  buf[1]  = 0;
+  buf[2]  = 6;
+  buf[3]  = 0xEC;
+  buf[12] = 49;
+  buf[13] = 0x4E;
+  buf[14] = 49;
+  buf[15] = 52;
+
+  if (!ntpUdp.beginPacket(NTP_SERVER, NTP_PORT)) return 0;
+  ntpUdp.write(buf, NTP_PACKET_SIZE);
+  ntpUdp.endPacket();
+
+  ntpUdp.setTimeout(2000);
+  if (!ntpUdp.parsePacket()) return 0;
+
+  ntpUdp.read(buf, NTP_PACKET_SIZE);
+  unsigned long hi = word(buf[40], buf[41]);
+  unsigned long lo = word(buf[42], buf[43]);
+  return (hi << 16 | lo) - SEVENTY_YEARS;
+}
+
+// Returns the current Unix epoch, re-syncing NTP every NTP_SYNC_MS.
+// Between syncs, time is derived from the cached value + elapsed millis().
+static unsigned long getEpochTime() {
+  unsigned long now = millis();
+  if (cachedEpoch == 0 || now - lastNtpSync >= NTP_SYNC_MS) {
+    unsigned long t = fetchNtpTime();
+    if (t > 0) {
+      cachedEpoch = t;
+      epochMillis = now;
+      lastNtpSync = now;
+    }
+  }
+  if (cachedEpoch == 0) return 0;
+  return cachedEpoch + (millis() - epochMillis) / 1000;
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // Utility helpers
 // ════════════════════════════════════════════════════════════════════════════
 
-/**
- * Writes an ISO 8601 UTC timestamp ("YYYY-MM-DDTHH:MM:SSZ") for a Unix
- * epoch value into buf.  Valid for all dates in 1970–2099.
- */
+// Writes an ISO 8601 UTC timestamp ("YYYY-MM-DDTHH:MM:SSZ") into buf.
 static void epochToIso8601(unsigned long epoch, char* buf, size_t len) {
   unsigned long ss   = epoch % 60;
   unsigned long mm   = (epoch / 60) % 60;
@@ -170,10 +218,7 @@ static void epochToIso8601(unsigned long epoch, char* buf, size_t len) {
            year, month + 1, (int)days + 1, (int)hh, (int)mm, (int)ss);
 }
 
-/**
- * Samples the sound sensor ADC continuously for SOUND_SAMPLE_MS and returns
- * the peak (highest) value observed.  Mirrors sound_sensor_test.ino.
- */
+// Samples the sound sensor for SOUND_SAMPLE_MS and returns the peak ADC value.
 static int sampleSoundPeak() {
   int peak = 0;
   unsigned long start = millis();
@@ -184,10 +229,7 @@ static int sampleSoundPeak() {
   return peak;
 }
 
-/**
- * Publishes a retained status JSON message to TOPIC_STATUS.
- * Used for "online" (on connect) and by the LWT for "offline".
- */
+// Publishes a retained JSON status message to TOPIC_STATUS.
 static void publishStatus(const char* statusStr) {
   char buf[32];
   snprintf(buf, sizeof(buf), "{\"status\":\"%s\"}", statusStr);
@@ -205,42 +247,28 @@ static void onCommand(char* topic, byte* payload, unsigned int length) {
 
   if (strstr(topic, "/alert")) {
     int dur = cmd["duration_ms"] | 1000;
-    // Wire a buzzer to a PWM pin and un-comment the line below.
-    // tone(9, 2000, dur);
-    Serial.print(F("CMD alert "));
-    Serial.print(dur);
-    Serial.println(F("ms"));
+    // Wire a buzzer to a PWM pin and un-comment: tone(9, 2000, dur);
+    Monitor.print(F("CMD alert "));
+    Monitor.print(dur);
+    Monitor.println(F("ms"));
   } else if (strstr(topic, "/config")) {
-    Serial.println(F("CMD config (not yet applied)"));
+    Monitor.println(F("CMD config (not yet applied)"));
   } else if (strstr(topic, "/ota")) {
-    Serial.println(F("CMD ota (not implemented)"));
+    Monitor.println(F("CMD ota (not implemented)"));
   }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Network
+// MQTT connection
 // ════════════════════════════════════════════════════════════════════════════
-
-static void connectWifi() {
-  if (WiFi.status() == WL_CONNECTED) return;
-  Serial.print(F("WiFi → "));
-  Serial.print(WIFI_SSID);
-  while (WiFi.begin(WIFI_SSID, WIFI_PASS) != WL_CONNECTED) {
-    Serial.print('.');
-    delay(3000);
-  }
-  Serial.print(F(" OK "));
-  Serial.println(WiFi.localIP());
-}
 
 static void connectMqtt() {
   while (!mqtt.connected()) {
-    Serial.print(F("MQTT → "));
+    Monitor.print(F("MQTT → "));
     char clientId[40];
     snprintf(clientId, sizeof(clientId), "safeguard-%s", HELMET_ID);
 
-    // LWT: broker broadcasts this payload to TOPIC_STATUS if the TCP session
-    // drops without a clean DISCONNECT (power loss, WiFi drop, etc.).
+    // LWT: broker sends this if the TCP session drops ungracefully.
     bool ok = mqtt.connect(
       clientId,
       MQTT_USER, MQTT_PASS,
@@ -249,13 +277,13 @@ static void connectMqtt() {
     );
 
     if (ok) {
-      Serial.println(F("connected"));
+      Monitor.println(F("connected"));
       publishStatus("online");
       mqtt.subscribe(TOPIC_COMMAND, /*qos*/ 1);
     } else {
-      Serial.print(F("rc="));
-      Serial.print(mqtt.state());
-      Serial.println(F(" retry 5s"));
+      Monitor.print(F("rc="));
+      Monitor.print(mqtt.state());
+      Monitor.println(F(" retry 5s"));
       delay(5000);
     }
   }
@@ -268,14 +296,13 @@ static void connectMqtt() {
 static ImuData readImu() {
   sensors_event_t a, g, tmp;
   mpuSensor.getEvent(&a, &g, &tmp);
-
   ImuData d;
-  // Adafruit driver returns m/s²; gateway schema requires g (÷ 9.80665).
+  // Adafruit driver returns m/s²; gateway schema requires g.
   d.ax  = a.acceleration.x / 9.80665f;
   d.ay  = a.acceleration.y / 9.80665f;
   d.az  = a.acceleration.z / 9.80665f;
   d.mag = sqrtf(d.ax * d.ax + d.ay * d.ay + d.az * d.az);
-  // Adafruit driver returns rad/s; gateway schema requires deg/s (× 180/π).
+  // Adafruit driver returns rad/s; gateway schema requires deg/s.
   d.gx  = g.gyro.x * (180.0f / (float)M_PI);
   d.gy  = g.gyro.y * (180.0f / (float)M_PI);
   d.gz  = g.gyro.z * (180.0f / (float)M_PI);
@@ -299,45 +326,43 @@ static EnvData readEnv() {
 // ════════════════════════════════════════════════════════════════════════════
 
 static void publishBatch() {
-  ntp.update();
-  unsigned long epoch = ntp.getEpochTime();
+  unsigned long epoch = getEpochTime();
   char ts[24];
-  epochToIso8601(epoch, ts, sizeof(ts));
+  if (epoch > 0) {
+    epochToIso8601(epoch, ts, sizeof(ts));
+  } else {
+    // NTP not yet synced — gateway will reject for clock skew; batch is
+    // still sent so sequence numbers stay monotonic once NTP recovers.
+    snprintf(ts, sizeof(ts), "1970-01-01T00:00:00Z");
+  }
 
-  // ── Read all sensors before building JSON ──────────────────────────────
-  // Reading upfront keeps captured_at consistent across every reading in
-  // the batch and avoids interleaving I²C traffic with JSON serialisation.
-
+  // ── Read all sensors before building JSON ─────────────────────────────
   ImuData imu       = mpuOk ? readImu() : ImuData{};
   int     mq2Raw    = analogRead(PIN_MQ2);
   int     mq7Raw    = analogRead(PIN_MQ7);
   EnvData env       = readEnv();
-  int     soundPeak = sampleSoundPeak();  // 100 ms blocking peak-sample
+  int     soundPeak = sampleSoundPeak();  // 100 ms peak-sample window
 
-  // Local-only sensors — read but not included in the MQTT payload.
+  // Local-only sensors — not published to MQTT.
   int  fsrRaw = analogRead(PIN_FSR);
   long irRaw  = maxOk ? maxSensor.getIR() : -1L;
 
-  // ── Serial diagnostic line ─────────────────────────────────────────────
-  Serial.print(ts);
-  Serial.print(F("  seq=")); Serial.print(txSequence + 1);
-  Serial.print(F("  MQ2=")); Serial.print(mq2Raw);
-  Serial.print(F("  MQ7=")); Serial.print(mq7Raw);
-  Serial.print(F("  SND=")); Serial.print(soundPeak);
-  if (mpuOk) {
-    Serial.print(F("  AZ="));  Serial.print(imu.az, 2);
-  }
+  // ── Diagnostic line ───────────────────────────────────────────────────
+  Monitor.print(ts);
+  Monitor.print(F("  seq=")); Monitor.print(txSequence + 1);
+  Monitor.print(F("  MQ2=")); Monitor.print(mq2Raw);
+  Monitor.print(F("  MQ7=")); Monitor.print(mq7Raw);
+  Monitor.print(F("  SND=")); Monitor.print(soundPeak);
+  if (mpuOk) { Monitor.print(F("  AZ=")); Monitor.print(imu.az, 2); }
   if (!isnan(env.temp_c)) {
-    Serial.print(F("  T="));   Serial.print(env.temp_c, 1);
-    Serial.print(F("°C  H=")); Serial.print(env.humidity_pct, 1);
-    Serial.print('%');
+    Monitor.print(F("  T="));  Monitor.print(env.temp_c, 1);
+    Monitor.print(F("C H=")); Monitor.print(env.humidity_pct, 1);
+    Monitor.print('%');
   }
-  Serial.print(F("  FSR=")); Serial.print(fsrRaw);
-  Serial.print(fsrRaw >= FSR_WORN_THRESHOLD ? F("(worn)") : F("(off)"));
-  if (maxOk) {
-    Serial.print(F("  IR=")); Serial.print(irRaw);
-  }
-  Serial.println();
+  Monitor.print(F("  FSR=")); Monitor.print(fsrRaw);
+  Monitor.print(fsrRaw >= FSR_WORN_THRESHOLD ? F("(worn)") : F("(off)"));
+  if (maxOk) { Monitor.print(F("  IR=")); Monitor.print(irRaw); }
+  Monitor.println();
 
   // ── Build TelemetryBatch JSON (ArduinoJson v7) ─────────────────────────
   JsonDocument doc;
@@ -347,7 +372,6 @@ static void publishBatch() {
 
   JsonArray readings = doc["readings"].to<JsonArray>();
 
-  // IMU — only included when the sensor initialised successfully.
   if (mpuOk) {
     JsonObject r = readings.add<JsonObject>();
     r["captured_at"] = ts;
@@ -362,7 +386,6 @@ static void publishBatch() {
     v["gyro_z_dps"]        = imu.gz;
   }
 
-  // MQ-2 (LPG / smoke)
   {
     JsonObject r = readings.add<JsonObject>();
     r["captured_at"] = ts;
@@ -371,7 +394,6 @@ static void publishBatch() {
     v["adc_raw"] = mq2Raw;
   }
 
-  // MQ-7 (carbon monoxide)
   {
     JsonObject r = readings.add<JsonObject>();
     r["captured_at"] = ts;
@@ -380,9 +402,7 @@ static void publishBatch() {
     v["adc_raw"] = mq7Raw;
   }
 
-  // DHT-22 (environment) — omit when sensor returns NaN to avoid gateway
-  // validation rejection.  The sensor needs ~2 s after power-on to settle;
-  // NaN reads during that window are silently skipped.
+  // DHT-22: omit if NaN to avoid gateway validation rejection.
   if (!isnan(env.temp_c) && !isnan(env.humidity_pct)) {
     JsonObject r = readings.add<JsonObject>();
     r["captured_at"] = ts;
@@ -393,7 +413,6 @@ static void publishBatch() {
     v["heat_index_c"]  = env.heat_index_c;
   }
 
-  // Sound sensor (peak ADC over 100 ms)
   {
     JsonObject r = readings.add<JsonObject>();
     r["captured_at"] = ts;
@@ -402,19 +421,16 @@ static void publishBatch() {
     v["adc_raw"] = soundPeak;
   }
 
-  // ── Serialise and publish ──────────────────────────────────────────────
+  // ── Serialise and publish ─────────────────────────────────────────────
   char buf[MQTT_BUF_SIZE];
   size_t len = serializeJson(doc, buf, sizeof(buf));
 
-  // PubSubClient v2.8 only supports QoS 0 for PUBLISH.  The gateway's
-  // monotonic sequence-number check handles any lost packets; the broker
-  // handles re-delivered packets that arrive out of order.
   bool ok = mqtt.publish(TOPIC_TELEMETRY,
                          reinterpret_cast<const uint8_t*>(buf), len,
                          /*retained=*/false);
   if (!ok) {
-    Serial.print(F("publish failed len="));
-    Serial.println(len);
+    Monitor.print(F("publish failed len="));
+    Monitor.println(len);
   }
 }
 
@@ -423,10 +439,11 @@ static void publishBatch() {
 // ════════════════════════════════════════════════════════════════════════════
 
 void setup() {
-  Serial.begin(115200);
-  while (!Serial && millis() < 3000) {}
+  // Bridge.begin() connects to the companion router chip and brings up WiFi.
+  // Must be called before any networking or Monitor output.
+  Bridge.begin();
+  Monitor.begin(115200);
 
-  // Build topic strings once; they are fixed for the device lifetime.
   snprintf(TOPIC_TELEMETRY, sizeof(TOPIC_TELEMETRY),
            "safeguard/telemetry/%s", HELMET_ID);
   snprintf(TOPIC_STATUS,    sizeof(TOPIC_STATUS),
@@ -434,65 +451,63 @@ void setup() {
   snprintf(TOPIC_COMMAND,   sizeof(TOPIC_COMMAND),
            "safeguard/command/%s/#", HELMET_ID);
 
-  Serial.print(F("SafeGuard helmet firmware — id="));
-  Serial.println(HELMET_ID);
+  Monitor.print(F("SafeGuard helmet firmware — id="));
+  Monitor.println(HELMET_ID);
 
-  // ── MPU-6050 (I2C 0x68, SDA/SCL) ───────────────────────────────────────
+  // ── MPU-6050 (I2C 0x68) ─────────────────────────────────────────────────
   if (mpuSensor.begin()) {
     mpuOk = true;
     mpuSensor.setAccelerometerRange(MPU6050_RANGE_2_G);
     mpuSensor.setGyroRange(MPU6050_RANGE_250_DEG);
     mpuSensor.setFilterBandwidth(MPU6050_BAND_21_HZ);
-    Serial.println(F("[OK]  MPU-6050"));
+    Monitor.println(F("[OK]  MPU-6050"));
   } else {
-    Serial.println(F("[--]  MPU-6050 not found — IMU readings omitted from payload"));
+    Monitor.println(F("[--]  MPU-6050 not found — IMU readings omitted"));
   }
 
   // ── DHT-22 (D4) ─────────────────────────────────────────────────────────
-  // begin() does not perform a sensor read.  The NaN guard in publishBatch()
-  // silently drops the environment reading during the sensor's ~2 s settling
-  // window after power-on; subsequent reads are fine.
   dhtSensor.begin();
-  Serial.println(F("[OK]  DHT-22 started (first valid read expected after ~2 s)"));
+  Monitor.println(F("[OK]  DHT-22 started (~2 s to first valid read)"));
 
-  // ── MAX30102 (I2C 0x57, shared bus — no address conflict with MPU-6050) ─
+  // ── MAX30102 (I2C 0x57, shared bus — no conflict with MPU-6050) ─────────
   if (maxSensor.begin(Wire, I2C_SPEED_FAST)) {
     maxOk = true;
     maxSensor.setup();
     maxSensor.setPulseAmplitudeRed(0x7F);
     maxSensor.setPulseAmplitudeIR(0x7F);
-    Serial.println(F("[OK]  MAX30102 (IR values logged to Serial; not published to MQTT)"));
+    Monitor.println(F("[OK]  MAX30102 (IR logged locally; not in MQTT payload)"));
   } else {
-    Serial.println(F("[--]  MAX30102 not found (IR column shows -1 in Serial log)"));
+    Monitor.println(F("[--]  MAX30102 not found"));
   }
 
-  // Passive analog sensors need no initialisation.
-  Serial.println(F("[OK]  MQ-2 A0  MQ-7 A1  Sound A2  FSR A3 (FSR local-log only)"));
+  Monitor.println(F("[OK]  MQ-2 A0  MQ-7 A1  Sound A2  FSR A3"));
 
-  // ── MQTT client — configure once; reconnect loop reuses these settings ───
+  // ── NTP initial sync ─────────────────────────────────────────────────────
+  ntpUdp.begin(NTP_LOCAL_PORT);
+  unsigned long t = fetchNtpTime();
+  if (t > 0) {
+    cachedEpoch = t;
+    epochMillis = millis();
+    lastNtpSync = millis();
+    Monitor.println(F("[OK]  NTP synced"));
+  } else {
+    Monitor.println(F("[--]  NTP failed — timestamps will be 1970 until next sync"));
+  }
+
+  // ── MQTT client ──────────────────────────────────────────────────────────
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
   mqtt.setCallback(onCommand);
   mqtt.setKeepAlive(30);
   mqtt.setBufferSize(MQTT_BUF_SIZE);
-
-  // ── Network bring-up ─────────────────────────────────────────────────────
-  connectWifi();
-  ntp.begin();
-  ntp.update();
   connectMqtt();
 
-  Serial.println(F("SafeGuard helmet ready"));
+  Monitor.println(F("SafeGuard helmet ready"));
 }
 
 void loop() {
-  // Reconnect WiFi and MQTT if the connection was lost.
-  if (WiFi.status() != WL_CONNECTED) connectWifi();
-  if (!mqtt.connected())             connectMqtt();
+  if (!mqtt.connected()) connectMqtt();
+  mqtt.loop();  // process incoming commands + MQTT keep-alive PINGs
 
-  // Process incoming command messages and send MQTT keep-alive PINGs.
-  mqtt.loop();
-
-  // Publish one TelemetryBatch per interval.
   unsigned long now = millis();
   if (now - lastBatchMs >= BATCH_INTERVAL_MS) {
     lastBatchMs = now;
