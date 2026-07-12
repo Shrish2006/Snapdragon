@@ -59,10 +59,15 @@ Wait for all services to reach healthy status. The Mosquitto broker listens on
 
 | Scenario | MQTT host | Port |
 |----------|-----------|------|
+| **Deployed VPS (electronics → cloud)** | `138.201.157.147` | `31883` |
 | `mosquitto_pub` / scripts on same machine | `localhost` | 1883 |
 | Arduino on same LAN as Docker host | Host PC's LAN IP (e.g. `192.168.1.42`) | 1883 |
-| Inside Kubernetes cluster | `mosquitto.safeguard.svc.cluster.local` | 1883 |
-| K8s, external device | LoadBalancer/NodePort external IP | 1883 |
+| Inside Kubernetes cluster | `mosquitto` | 1883 |
+| K8s, other external devices | NodePort external IP | NodePort |
+
+> **For your Arduino helmet:** set `MQTT_HOST` to `138.201.157.147`, `MQTT_PORT` to `31883`,
+> `MQTT_USER` to your helmet ID, and `MQTT_PASS` to empty (broker allows anonymous).
+> The deployed broker accepts connections from anywhere on the internet — no VPN needed.
 
 ### 2. Send a telemetry batch
 
@@ -152,7 +157,7 @@ c.publish("safeguard/telemetry/helmet-01", json.dumps({
 c.disconnect()
 ```
 
-### 3. Verify ingestion
+### 3. Verify ingestion (local)
 
 ```bash
 # Check the helmet appeared in the registry
@@ -163,6 +168,18 @@ curl -s "http://localhost:8080/v1/events?event_type=telemetry.received&limit=3" 
 
 # Watch events live over WebSocket
 websocat ws://localhost:8080/v1/ws | jq .
+```
+
+### 4. Test against the deployed VPS
+
+```bash
+# Send telemetry to the production broker (works from anywhere):
+mosquitto_pub -h 138.201.157.147 -p 31883 \
+  -t safeguard/telemetry/helmet-vps-01 \
+  -m '{"helmet_id":"helmet-vps-01","sequence":1,"sent_at":"2026-07-12T00:00:00Z","readings":[{"captured_at":"2026-07-12T00:00:00Z","value":{"kind":"imu","accel_x_g":0.03,"accel_y_g":-0.01,"accel_z_g":1.02,"accel_magnitude_g":1.02,"gyro_x_dps":1.5,"gyro_y_dps":-0.2,"gyro_z_dps":0.1}}]}' -q 1
+
+# Verify the helmet appeared via the gateway API:
+curl -s https://api-snapdragon.upayan.dev/v1/helmets | jq '.[] | select(.helmet_id=="helmet-vps-01")'
 ```
 
 All three transports — MQTT, HTTP, and WebSocket — feed the same `IngestionService`

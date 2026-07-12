@@ -39,23 +39,28 @@ Install all via **Arduino IDE → Tools → Manage Libraries**:
 Edit the **CONFIG** block at the top of `helmet_firmware.ino`:
 
 ```cpp
-static const char* HELMET_ID = "helmet-01";   // unique per device
+// ── For the deployed VPS (production) ────────────────────────
+static const char* HELMET_ID = "helmet-01";       // unique per device
 static const char* WIFI_SSID = "YOUR_SSID";
 static const char* WIFI_PASS = "YOUR_WIFI_PASSWORD";
-static const char* MQTT_HOST = "192.168.1.100";  // ← set from table below
-static const int   MQTT_PORT = 1883;
-static const char* MQTT_USER = "helmet-01";       // must equal HELMET_ID in prod
-static const char* MQTT_PASS = "";                // blank if allow_anonymous
+static const char* MQTT_HOST = "138.201.157.147";  // deployed VPS
+static const int   MQTT_PORT = 31883;              // NodePort
+static const char* MQTT_USER = "helmet-01";        // must equal HELMET_ID
+static const char* MQTT_PASS = "";                 // anonymous access
 ```
 
 **What to set `MQTT_HOST` to:**
 
-| You are running the stack on… | `MQTT_HOST` | Notes |
-|-------------------------------|-------------|-------|
-| **Docker Compose, same machine** | `localhost` | Broker port 1883 is forwarded to your host |
-| **Docker Compose, Arduino on LAN** | Your PC's LAN IP | e.g. `192.168.1.42` — find with `ipconfig` (Win) / `hostname -I` (Linux) / `ifconfig` (Mac) |
-| **Kubernetes, device on cluster network** | `mosquitto.safeguard.svc.cluster.local` | Internal ClusterIP; needs a pod on the cluster or port-forward |
-| **Kubernetes, device on physical LAN** | The NodePort/LoadBalancer external IP | `kubectl get svc mosquitto -n safeguard` to find it |
+| You are running the stack on… | `MQTT_HOST` | Port | `MQTT_PASS` |
+|-------------------------------|-------------|------|-------------|
+| **Deployed VPS (production)** | `138.201.157.147` | `31883` | `""` (anonymous) |
+| Docker Compose, same machine | `localhost` | `1883` | `""` |
+| Docker Compose, Arduino on LAN | Your PC's LAN IP | `1883` | `""` |
+| K8s, device on cluster network | `mosquitto.safeguard.svc.cluster.local` | `1883` | `""` |
+
+> The deployed VPS broker is reachable from anywhere on the internet at port **31883**.
+> Authentication is anonymous — no password required. Just set the host, port, and
+> a unique `HELMET_ID`.
 
 
 ---
